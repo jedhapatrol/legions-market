@@ -19,6 +19,24 @@
     }
     </script>
 
+    <!-- Firebase SDK (compat for non-bundled use) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBw0a38h7Cw5uMb0fhFAg79V-gzd1Aiayo",
+        authDomain: "sixth-scale-market.firebaseapp.com",
+        databaseURL: "https://sixth-scale-market-default-rtdb.firebaseio.com",
+        projectId: "sixth-scale-market",
+        storageBucket: "sixth-scale-market.firebasestorage.app",
+        messagingSenderId: "916821354993",
+        appId: "1:916821354993:web:b423f39c8ca0dc1b827c50",
+        measurementId: "G-7MYLV36WSL"
+      };
+      const firebaseApp = firebase.initializeApp(firebaseConfig);
+      const firebaseDb = firebase.database();
+    </script>
+
     <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -715,7 +733,7 @@ function FairPriceGauge({ price, low, avg, high, label, currency }) {
 }
 
 // ─── DETAIL MODAL ───
-function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose, currency, onCompare, isInCompare, watchPrice, onSetWatch, region }) {
+function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose, currency, onCompare, isInCompare, watchPrice, onSetWatch, region, communityData }) {
   const [detailWatchInput, setDetailWatchInput] = useState(false);
   const [detailWatchVal, setDetailWatchVal] = useState(watchPrice || "");
   if (!figure) return null;
@@ -789,6 +807,17 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
                   {stats.avg <= watchPrice && <span className="text-xs text-green-300 bg-green-500/20 px-2 py-0.5 rounded-full">Below target!</span>}
                 </div>
                 <button onClick={() => onSetWatch(figure.code, null)} className="text-xs text-gray-500 hover:text-red-400 transition">Remove</button>
+              </div>
+            )}
+            {/* Community Insights */}
+            {communityData && (communityData.owned > 0 || communityData.wishlist > 0 || communityData.preorder > 0) && (
+              <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
+                <p className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">Community</p>
+                <div className="flex gap-3 text-xs">
+                  {communityData.owned > 0 && <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div><span className="text-gray-400">{communityData.owned} own this</span></div>}
+                  {communityData.wishlist > 0 && <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-yellow-500"></div><span className="text-gray-400">{communityData.wishlist} want this</span></div>}
+                  {communityData.preorder > 0 && <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div><span className="text-gray-400">{communityData.preorder} pre-ordered</span></div>}
+                </div>
               </div>
             )}
           </div>
@@ -976,6 +1005,32 @@ function CompareDrawer({ figures, allStats, onRemove, onClose, currency }) {
   );
 }
 
+// ─── FIREBASE TRACKING HELPERS ───
+const FB_DB = window.firebaseDb;
+
+function fbTrackCollectionEvent(sku, status, prevStatus) {
+  // Anonymous aggregate counters (no personal data) — no consent required
+  if (!FB_DB) return;
+  const ref = FB_DB.ref('lm_collection_events/' + sku);
+  ref.transaction((current) => {
+    if (!current) current = { owned: 0, preorder: 0, wishlist: 0 };
+    // Decrement previous status if set
+    if (prevStatus && current[prevStatus] !== undefined) {
+      current[prevStatus] = Math.max(0, (current[prevStatus] || 0) - 1);
+    }
+    // Increment new status if set
+    if (status && current[status] !== undefined) {
+      current[status] = (current[status] || 0) + 1;
+    }
+    return current;
+  });
+}
+
+function fbGetAggregateData() {
+  if (!FB_DB) return Promise.resolve({});
+  return FB_DB.ref('lm_collection_events').once('value').then(snap => snap.val() || {});
+}
+
 // ─── COLLECTION MANAGER FUNCTIONS ───
 function getCollectionMap() {
   return JSON.parse(localStorage.getItem("lm-collection-map") || "{}");
@@ -990,8 +1045,10 @@ function toggleCollection(sku, newStatus) {
   const current = map[sku];
   if (current === newStatus) {
     delete map[sku];
+    fbTrackCollectionEvent(sku, null, current);
   } else {
     map[sku] = newStatus;
+    fbTrackCollectionEvent(sku, newStatus, current || null);
   }
   setCollectionMap(map);
   return map;
@@ -1016,6 +1073,7 @@ function LegionsMarket() {
   const [soldDetails, setSoldDetails] = useState({});
   const [wishlistTargets, setWishlistTargets] = useState({});
   const [compareList, setCompareList] = useState([]);
+  const [communityData, setCommunityData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBrowseItems, setFilteredBrowseItems] = useState([]);
   const [browseSort, setBrowseSort] = useState("name-asc");
@@ -1056,6 +1114,9 @@ function LegionsMarket() {
         setForSaleDetails(JSON.parse(localStorage.getItem("lm-forsale-details") || "{}"));
         setSoldDetails(JSON.parse(localStorage.getItem("lm-sold-details") || "{}"));
         setWishlistTargets(JSON.parse(localStorage.getItem("lm-wishlist-targets") || "{}"));
+
+        // Load community aggregate data from Firebase
+        fbGetAggregateData().then(data => setCommunityData(data || {})).catch(() => {});
       } catch (err) {
         console.error("Failed to load data:", err);
       }
@@ -1487,6 +1548,7 @@ function LegionsMarket() {
           watchPrice={wishlistTargets[showDetail.sku]}
           onSetWatch={handleSetWatchPrice}
           region={region}
+          communityData={communityData[showDetail.sku]}
         />
       )}
 
