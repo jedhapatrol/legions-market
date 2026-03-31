@@ -251,6 +251,22 @@ function buildStoreLink(figureCode) {
   return `https://store-horsemen.myshopify.com`;
 }
 
+// ─── SIDESHOW AFFILIATE LINK BUILDER ───
+const CJ_CLICK_URL = "https://www.dpbolvw.net/click-101716655-17127937";
+
+function buildSideshowUrl(sideshowUrl) {
+  if (!sideshowUrl) return null;
+  return `${CJ_CLICK_URL}?url=${encodeURIComponent(sideshowUrl)}`;
+}
+
+function getSideshowUrl(figureCode) {
+  const cat = CATALOG.find(c => c.sku === figureCode);
+  if (!cat || !cat.sideshowUrl) return null;
+  const validAvail = ["Available", "Pre-Order", "Waitlist", "In Stock", "PRE-RELEASE", "Pre-Release", "WAITLIST OPEN"];
+  if (!validAvail.includes(cat.availability)) return null;
+  return buildSideshowUrl(cat.sideshowUrl);
+}
+
 // ─── TAX REPORT EXPORT ───
 function exportTaxReport(collectionMap, ownedDetails, forSaleDetails, preorderDetails, soldDetails, currency, dateFrom, dateTo) {
   const wb = XLSX.utils.book_new();
@@ -713,20 +729,22 @@ function FeedbackModal({ onClose }) {
 
 // ─── FAIR PRICE GAUGE ───
 function FairPriceGauge({ price, low, avg, high, label, currency }) {
-  const percent = avg && high > low ? ((price - low) / (high - low)) * 100 : 50;
+  const range = high - low || 1;
+  const pct = Math.max(0, Math.min(100, ((price - low) / range) * 100));
+  const avgPct = ((avg - low) / range) * 100;
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500">Fair Price Range</span>
-        <span className="text-gray-400">{formatPrice(low, currency)} → {formatPrice(high, currency)}</span>
+    <div className="mb-3">
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span>{label}</span>
+        <span className="font-bold" style={{ color: "#F27B1A" }}>{formatPrice(price, currency)}</span>
       </div>
-      <div className="w-full h-2 bg-gray-700/50 rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${percent}%`, background: "linear-gradient(90deg, #22c55e, #F27B1A)" }}></div>
+      <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden">
+        <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(90deg, #22C55E 0%, #E8A020 50%, #EF4444 100%)" }} />
+        <div className="absolute top-0 h-full w-0.5 bg-white" style={{ left: `${avgPct}%` }} title={`Avg: $${avg}`} />
       </div>
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-green-400 font-semibold">Low: {formatPrice(low, currency)}</span>
-        <span className="text-gray-400">Avg: {formatPrice(avg, currency)}</span>
-        <span className="text-orange-400 font-semibold">High: {formatPrice(high, currency)}</span>
+      <div className="flex justify-between text-xs text-gray-500 mt-0.5">
+        <span>{formatPrice(low, currency)}</span>
+        <span>{formatPrice(high, currency)}</span>
       </div>
     </div>
   );
@@ -1057,11 +1075,13 @@ function toggleCollection(sku, newStatus) {
 
 // ─── MAIN APP ───
 function LegionsMarket() {
-  const [currentTab, setCurrentTab] = useState("browse");
+  const [view, setView] = useState("browse");
+  const [selectedFigure, setSelectedFigure] = useState(null);
   const [showDetail, setShowDetail] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTaxReport, setShowTaxReport] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem("lm-theme") || "dark");
   const [currency, setCurrency] = useState(localStorage.getItem("lm-currency") || "USD");
   const [region, setRegion] = useState(localStorage.getItem("lm-region") || "Global");
@@ -1073,14 +1093,25 @@ function LegionsMarket() {
   const [forSaleDetails, setForSaleDetails] = useState({});
   const [soldDetails, setSoldDetails] = useState({});
   const [wishlistTargets, setWishlistTargets] = useState({});
-  const [compareList, setCompareList] = useState([]);
+  const [compareFigures, setCompareFigures] = useState([]);
   const [communityData, setCommunityData] = useState({});
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCondition, setFilterCondition] = useState("All");
+  const [filterReleaseYear, setFilterReleaseYear] = useState("All");
+  const [filterExclusive, setFilterExclusive] = useState("All");
+  const [filterTrend, setFilterTrend] = useState("All");
+  const [filterPriceMin, setFilterPriceMin] = useState(0);
+  const [filterPriceMax, setFilterPriceMax] = useState(10000);
+  const [dismissedAlerts, setDismissedAlerts] = useState([]);
   const [filteredBrowseItems, setFilteredBrowseItems] = useState([]);
-  const [browseSort, setBrowseSort] = useState("name-asc");
+  const [sortBy, setSortBy] = useState("value-desc");
   const [browseLicense, setBrowseLicense] = useState("All");
   const [browseSeries, setBrowseSeries] = useState("All");
-  const [browsePageSize, setBrowsePageSize] = useState(12);
+  const [filterBrand, setFilterBrand] = useState("All");
+  const [filterScale, setFilterScale] = useState("All");
+  const [filterRegion, setFilterRegion] = useState("All");
+  const [perPage, setPerPage] = useState(200);
   const [browsePage, setBrowsePage] = useState(1);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -1102,9 +1133,9 @@ function LegionsMarket() {
         CATALOG = catalog;
         PRODUCT_IMAGES = images;
 
-        // Pre-calculate stats
+        // Pre-calculate stats for ALL figures
         const statsMap = {};
-        catalog.slice(0, 50).forEach(f => {
+        catalog.forEach(f => {
           statsMap[f.sku] = calcStats(f);
         });
         setAllStats(statsMap);
@@ -1150,12 +1181,12 @@ function LegionsMarket() {
     localStorage.setItem("lm-region", region);
   }, [region]);
 
-  // Filter browse items
+  // Filter browse items with SSM-style filters
   useEffect(() => {
     let items = CATALOG || [];
-    const q = searchQuery.toLowerCase();
+    const q = search.toLowerCase();
     if (q) {
-      items = items.filter(f => f.name.toLowerCase().includes(q) || f.sku.toLowerCase().includes(q));
+      items = items.filter(f => f.name.toLowerCase().includes(q) || (f.code || f.sku).toLowerCase().includes(q));
     }
     if (browseLicense !== "All") {
       items = items.filter(f => f.license === browseLicense);
@@ -1163,28 +1194,93 @@ function LegionsMarket() {
     if (browseSeries !== "All") {
       items = items.filter(f => f.series === browseSeries);
     }
+    if (filterBrand !== "All") {
+      items = items.filter(f => f.brand === filterBrand);
+    }
+    if (filterScale !== "All") {
+      items = items.filter(f => f.scale === filterScale);
+    }
+    if (filterRegion !== "All") {
+      items = items.filter(f => f.region === filterRegion);
+    }
+    if (filterReleaseYear !== "All") {
+      const figDb = FIGURES_DB.find(f => items.some(c => c.sku === f.code));
+      items = items.filter(c => {
+        const figDb = FIGURES_DB.find(f => f.code === c.sku);
+        return figDb && figDb.releaseYear === parseInt(filterReleaseYear);
+      });
+    }
+    if (filterExclusive !== "All") {
+      items = items.filter(c => {
+        const figDb = FIGURES_DB.find(f => f.code === c.sku);
+        return figDb && figDb.exclusiveType === filterExclusive;
+      });
+    }
+    if (filterTrend !== "All") {
+      items = items.filter(c => {
+        const stats = allStats[c.sku];
+        return stats && stats.trend === filterTrend;
+      });
+    }
+    if (filterPriceMin > 0 || filterPriceMax < 10000) {
+      items = items.filter(c => {
+        const stats = allStats[c.sku];
+        return stats && stats.avg >= filterPriceMin && stats.avg <= filterPriceMax;
+      });
+    }
 
     const sortFns = {
+      "newest": (a, b) => CATALOG.indexOf(b) - CATALOG.indexOf(a),
+      "oldest": (a, b) => CATALOG.indexOf(a) - CATALOG.indexOf(b),
+      "value-desc": (a, b) => (allStats[b.sku]?.avg || 0) - (allStats[a.sku]?.avg || 0),
+      "value-asc": (a, b) => (allStats[a.sku]?.avg || 0) - (allStats[b.sku]?.avg || 0),
+      "retail-desc": (a, b) => (b.retail || 0) - (a.retail || 0),
+      "retail-asc": (a, b) => (a.retail || 0) - (b.retail || 0),
+      "roi-desc": (a, b) => (allStats[b.sku]?.roi || 0) - (allStats[a.sku]?.roi || 0),
       "name-asc": (a, b) => a.name.localeCompare(b.name),
       "name-desc": (a, b) => b.name.localeCompare(a.name),
-      "retail-asc": (a, b) => (a.retail || 0) - (b.retail || 0),
-      "retail-desc": (a, b) => (b.retail || 0) - (a.retail || 0),
-      "newest": (a, b) => CATALOG.indexOf(b) - CATALOG.indexOf(a)
+      "code-asc": (a, b) => (a.code || a.sku).localeCompare(b.code || b.sku)
     };
 
-    if (sortFns[browseSort]) {
-      items = items.sort(sortFns[browseSort]);
+    if (sortFns[sortBy]) {
+      items = items.sort(sortFns[sortBy]);
     }
 
     setFilteredBrowseItems(items);
     setBrowsePage(1);
-  }, [searchQuery, browseLicense, browseSeries, browseSort, dataLoaded]);
+  }, [search, browseLicense, browseSeries, filterBrand, filterScale, filterRegion, filterReleaseYear, filterExclusive, filterTrend, filterPriceMin, filterPriceMax, sortBy, dataLoaded, allStats]);
 
   const licenses = ["All", ...new Set(CATALOG.map(c => c.license).filter(Boolean))].sort();
   const seriesList = ["All", ...new Set(CATALOG.map(c => c.series).filter(Boolean))].sort();
+  const brandsList = ["All", ...new Set(CATALOG.map(c => c.brand).filter(Boolean))].sort();
+  const yearsList = ["All", ...new Set(FIGURES_DB.map(f => f.releaseYear).filter(Boolean))].sort().reverse();
+  const exclusiveTypes = ["All", ...new Set(FIGURES_DB.map(f => f.exclusiveType).filter(Boolean))];
+  const scaleList = ["All", ...new Set(CATALOG.map(c => c.scale).filter(Boolean))].sort();
+  const regionList = ["All", ...new Set(CATALOG.map(c => c.region).filter(Boolean))].sort();
 
-  const paginatedItems = filteredBrowseItems.slice((browsePage - 1) * browsePageSize, browsePage * browsePageSize);
-  const totalPages = Math.ceil(filteredBrowseItems.length / browsePageSize);
+  const changePerPage = (val) => {
+    if (val === "All") {
+      setPerPage(filteredBrowseItems.length || 9999);
+    } else {
+      setPerPage(parseInt(val));
+    }
+    setBrowsePage(1);
+  };
+
+  const changeCurrency = (newCurrency) => {
+    setCurrency(newCurrency);
+  };
+
+  const changeRegion = (newRegion) => {
+    setRegion(newRegion);
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const paginatedFiltered = filteredBrowseItems.slice((browsePage - 1) * perPage, browsePage * perPage);
+  const totalPages = Math.ceil(filteredBrowseItems.length / perPage);
 
   const handleToggleCollection = (sku, type) => {
     const newMap = toggleCollection(sku, type);
@@ -1202,8 +1298,8 @@ function LegionsMarket() {
     localStorage.setItem("lm-wishlist-targets", JSON.stringify(targets));
   };
 
-  const handleCompare = (figure) => {
-    setCompareList(prev => {
+  const addToCompare = (figure) => {
+    setCompareFigures(prev => {
       if (prev.find(f => f.id === figure.id)) {
         return prev.filter(f => f.id !== figure.id);
       }
@@ -1214,8 +1310,8 @@ function LegionsMarket() {
     });
   };
 
-  const handleRemoveCompare = (figId) => {
-    setCompareList(prev => prev.filter(f => f.id !== figId));
+  const removeFromCompare = (figId) => {
+    setCompareFigures(prev => prev.filter(f => f.id !== figId));
   };
 
   const handleExportTaxReport = (dateFrom, dateTo) => {
@@ -1231,97 +1327,274 @@ function LegionsMarket() {
     return s;
   };
 
-  // ─── BROWSE TAB ───
-  const renderBrowse = () => (
-    <div className="w-full space-y-4">
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 sticky top-0 z-20">
-        <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 mb-3">
-          <Search className="w-5 h-5 text-gray-500" />
-          <input type="text" placeholder="Search by name or code..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-white outline-none" />
-          {searchQuery && <button onClick={() => setSearchQuery("")} className="text-gray-500 hover:text-white"><X className="w-4 h-4" /></button>}
+  // ─── FIGURE CARD ───
+  function FigureCard({ figure, stats, inCollection, collectionStatus, onToggleCollection, onSelect, currency, onCompare, isInCompare, watchPrice, onSetWatch, region }) {
+    const [showWatchInput, setShowWatchInput] = useState(false);
+    const [watchInputVal, setWatchInputVal] = useState(watchPrice || "");
+    const trendColor = stats?.trend === "rising" ? "text-green-400" : stats?.trend === "falling" ? "text-red-400" : "text-orange-500";
+    const TrendIcon = stats?.trend === "rising" ? TrendingUp : stats?.trend === "falling" ? TrendingDown : ArrowUpDown;
+    const isExclusive = figure.exclusiveType && !["Standard", "Deluxe"].includes(figure.exclusiveType);
+    return (
+      <div onClick={() => onSelect(figure)} className="group cursor-pointer bg-gradient-to-b from-gray-800/80 to-gray-900/90 border border-gray-700/50 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" style={{ "--tw-shadow-colored": "0 0 0 var(--tw-shadow-offset-x,0) var(--tw-shadow-offset-y,0) var(--tw-shadow-blur-radius,0) var(--tw-shadow-spread-radius,0) rgba(242, 123, 26, 0.1)" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(242, 123, 26, 0.5)"} onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(107, 107, 128, 0.5)"}>
+        <div className="relative">
+          <div className="aspect-[3/4] bg-gray-900 flex items-center justify-center overflow-hidden">
+            <FigureImage code={figure.code} name={figure.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="absolute inset-x-0 top-0 h-16" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)" }}></div>
+          <div className="absolute top-2 left-2 flex gap-1.5 z-10">
+            <Badge color={SERIES_INFO[figure.series]?.color || "#888"}>{figure.code}</Badge>
+            {isExclusive && (
+              <Badge color="#ff6b35">
+                {figure.exclusiveType === "Sideshow Exclusive" ? "SS" : figure.exclusiveType === "SDCC Exclusive" ? "SDCC" : figure.exclusiveType === "Toy Fair Exclusive" ? "TF" : figure.exclusiveType === "Artisan Edition" ? "AE" : figure.exclusiveType === "Special Edition" ? "SE" : figure.exclusiveType === "Exclusive" ? "EX" : figure.exclusiveType}
+              </Badge>
+            )}
+          </div>
+          <div className="absolute top-2 right-2 z-10">
+            <button onClick={(e) => { e.stopPropagation(); onToggleCollection(); }}
+              className={`p-1.5 rounded-full transition-all ${collectionStatus === "wishlist" ? "text-gray-900" : collectionStatus ? "text-gray-900" : "text-gray-300"}`} style={collectionStatus === "wishlist" ? { background: "#F27B1A" } : collectionStatus === "owned" ? { background: "#22C55E" } : collectionStatus === "preorder" ? { background: "#3B82F6" } : { background: "rgba(13,13,20,0.7)", backdropFilter: "blur(8px)" }}
+              title={collectionStatus === "owned" ? "Owned" : collectionStatus === "preorder" ? "Pre-Ordered" : collectionStatus === "wishlist" ? "On Want List" : "Add to Want List"}>
+              {collectionStatus === "owned" ? <CheckCircle className="w-4 h-4" /> : collectionStatus === "preorder" ? <ShoppingCart className="w-4 h-4" /> : <Star className="w-4 h-4" fill={collectionStatus === "wishlist" ? "currentColor" : "none"} />}
+            </button>
+          </div>
+          <div className={`absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${trendColor}`} style={{ background: "rgba(0,0,0,0.7)" }}>
+            <TrendIcon className="w-3 h-3" />
+            {stats?.trendPct > 0 ? "+" : ""}{stats?.trendPct}%
+          </div>
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">License</label>
-            <select value={browseLicense} onChange={(e) => setBrowseLicense(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
-              {licenses.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
+        <div className="p-2 sm:p-3">
+          <h3 className="text-sm font-bold text-white truncate">{figure.name}</h3>
+          <p className="text-xs text-gray-400 truncate">{figure.subtitle}</p>
+          {figure.brand && figure.brand !== "Hot Toys" && <p className="text-xs text-purple-400 font-medium truncate">{figure.brand}</p>}
+          <div className="mb-2"></div>
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Market Value</p>
+              <p className="text-base sm:text-lg font-bold" style={{ color: "#F27B1A" }}>{formatPrice(stats?.avg, currency)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500">Retail</p>
+              <p className="text-xs sm:text-sm text-gray-400">{formatPrice(figure.retail, currency)}</p>
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Series</label>
-            <select value={browseSeries} onChange={(e) => setBrowseSeries(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
-              {seriesList.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="text-gray-500">{stats?.totalSales} sales</span>
+            <span className={stats?.roi > 0 ? "text-green-400" : "text-red-400"}>
+              {stats?.roi > 0 ? "+" : ""}{stats?.roi}% ROI
+            </span>
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Sort</label>
-            <select value={browseSort} onChange={(e) => setBrowseSort(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="retail-asc">Retail (Low)</option>
-              <option value="retail-desc">Retail (High)</option>
-              <option value="newest">Newest</option>
-            </select>
+          <div className="mt-2 flex flex-col gap-1.5">
+            <div className={`grid ${getSideshowUrl(figure.code) ? "grid-cols-2" : "grid-cols-3"} gap-1.5`}>
+              <a href={buildEbaySearchUrl(figure.name, figure.code, region, figure.scale)} target="_blank" rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-gray-800 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500">
+                <ExternalLink className="w-3 h-3" />eBay
+              </a>
+              {getSideshowUrl(figure.code) ? (
+                <a href={getSideshowUrl(figure.code)} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-orange-400 hover:text-orange-300 border border-orange-500/40 hover:border-orange-500/70" style={{ background: "rgba(242,123,26,0.08)" }}>
+                  <ShoppingCart className="w-3 h-3" />Sideshow
+                </a>
+              ) : null}
+              {!getSideshowUrl(figure.code) && onCompare && (
+                <button onClick={(e) => { e.stopPropagation(); onCompare(figure); }}
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isInCompare ? "bg-purple-500/15 border-purple-500/50 text-purple-400" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-purple-400 hover:border-purple-500/50"}`}>
+                  <Layers className="w-3 h-3" />Compare
+                </button>
+              )}
+              {!getSideshowUrl(figure.code) && onSetWatch && (
+                <button onClick={(e) => { e.stopPropagation(); if (watchPrice) { onSetWatch(figure.code, null); } else { setShowWatchInput(prev => !prev); } }}
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${watchPrice ? "bg-green-500/15 border-green-500/50 text-green-400" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-green-400 hover:border-green-500/50"}`}
+                  title={watchPrice ? `Watching at ${formatPrice(watchPrice, currency)} — click to remove` : "Set price watch"}>
+                  <Bell className="w-3 h-3" />{watchPrice ? formatPrice(watchPrice, currency) : "Watch"}
+                </button>
+              )}
+            </div>
+            {getSideshowUrl(figure.code) && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {onCompare && (
+                  <button onClick={(e) => { e.stopPropagation(); onCompare(figure); }}
+                    className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isInCompare ? "bg-purple-500/15 border-purple-500/50 text-purple-400" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-purple-400 hover:border-purple-500/50"}`}>
+                    <Layers className="w-3 h-3" />Compare
+                  </button>
+                )}
+                {onSetWatch && (
+                  <button onClick={(e) => { e.stopPropagation(); if (watchPrice) { onSetWatch(figure.code, null); } else { setShowWatchInput(prev => !prev); } }}
+                    className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${watchPrice ? "bg-green-500/15 border-green-500/50 text-green-400" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-green-400 hover:border-green-500/50"}`}
+                    title={watchPrice ? `Watching at ${formatPrice(watchPrice, currency)} — click to remove` : "Set price watch"}>
+                    <Bell className="w-3 h-3" />{watchPrice ? formatPrice(watchPrice, currency) : "Watch"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">Per Page</label>
-            <select value={browsePageSize} onChange={(e) => setBrowsePageSize(Number(e.target.value))}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
-              <option value={6}>6</option>
-              <option value={12}>12</option>
-              <option value={24}>24</option>
-              <option value={48}>48</option>
-            </select>
-          </div>
+          {showWatchInput && !watchPrice && (
+            <div className="mt-1.5 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex-1 flex items-center gap-1 bg-gray-800 border border-green-500/40 rounded-lg px-2 py-1.5">
+                <span className="text-xs text-gray-500">$</span>
+                <input type="number" placeholder="Target price" value={watchInputVal} onChange={(e) => setWatchInputVal(e.target.value)}
+                  className="flex-1 bg-transparent text-xs text-white outline-none w-0" autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter" && watchInputVal) { onSetWatch(figure.code, parseFloat(watchInputVal)); setShowWatchInput(false); } if (e.key === "Escape") setShowWatchInput(false); }} />
+              </div>
+              <button onClick={() => { if (watchInputVal) { onSetWatch(figure.code, parseFloat(watchInputVal)); setShowWatchInput(false); } }}
+                className="px-2 py-1.5 rounded-lg text-xs font-semibold bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30 transition">
+                Set
+              </button>
+            </div>
+          )}
         </div>
       </div>
+    );
+  }
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-        {paginatedItems.map(fig => {
-          const stats = statsForFigure(fig.sku);
-          const isWishlisted = collectionMap[fig.sku] === "wishlist";
-          return (
-            <div key={fig.sku} className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden hover:border-orange-500/50 transition-all cursor-pointer group" onClick={() => setShowDetail(fig)}>
-              <div className="aspect-square bg-gray-900 overflow-hidden">
-                <FigureImage code={fig.code || fig.sku} name={fig.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+
+  // ─── BROWSE TAB ───
+  const renderBrowse = () => (
+    <>
+      <div className="mb-6 space-y-3">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, character, or item code (e.g. MMS770)..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-800/50 border border-gray-700/50 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1" style={{ "--tw-ring-color": "rgba(242, 123, 26, 0.2)" }} onFocus={(e) => e.target.style.borderColor = "rgba(242, 123, 26, 0.5)"} onBlur={(e) => e.target.style.borderColor = "rgba(107, 107, 128, 0.5)"} />
+          </div>
+          <button onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium border transition-all bg-gray-800/50 text-gray-400 hover:text-white`} style={showFilters ? { background: "rgba(242, 123, 26, 0.15)", borderColor: "rgba(242, 123, 26, 0.5)", color: "#F27B1A" } : { borderColor: "rgba(107, 107, 128, 0.5)" }}>
+            <Filter className="w-4 h-4" /><span className="hidden sm:inline">Filters</span>
+          </button>
+        </div>
+        {showFilters && (
+          <div className="p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* License Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">License</label>
+                <select value={browseLicense} onChange={(e) => setBrowseLicense(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  {licenses.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
               </div>
-              <div className="p-3 space-y-2">
-                <h3 className="font-semibold text-white truncate text-sm">{fig.name}</h3>
-                <p className="text-xs text-gray-400">{fig.sku}</p>
-                {stats && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Market:</span>
-                    <span className="font-bold text-orange-400">{formatPrice(stats.avg, currency)}</span>
+
+              {/* Series Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">Series</label>
+                <select value={browseSeries} onChange={(e) => setBrowseSeries(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  {seriesList.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Condition Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">Condition</label>
+                <select value={filterCondition} onChange={(e) => setFilterCondition(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  <option value="All">All</option>
+                  <option value="New/Sealed">New/Sealed</option>
+                  <option value="Opened/Displayed">Opened/Displayed</option>
+                  <option value="Like New">Like New</option>
+                  <option value="Very Good">Very Good</option>
+                </select>
+              </div>
+
+              {/* Release Year Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">Release Year</label>
+                <select value={filterReleaseYear} onChange={(e) => setFilterReleaseYear(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  {yearsList.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+
+              {/* Exclusive Type Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">Exclusive Type</label>
+                <select value={filterExclusive} onChange={(e) => setFilterExclusive(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  {exclusiveTypes.map((e) => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+
+              {/* Trend Filter */}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold">Trend</label>
+                <select value={filterTrend} onChange={(e) => setFilterTrend(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                  <option value="All">All</option>
+                  <option value="rising">Rising</option>
+                  <option value="stable">Stable</option>
+                  <option value="falling">Falling</option>
+                </select>
+              </div>
+
+              {/* Price Range Filter */}
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                <label className="text-xs text-gray-500 block mb-2 font-semibold">Price Range: ${filterPriceMin} - ${filterPriceMax}</label>
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1">
+                    <input type="range" min="0" max="10000" step="50" value={filterPriceMin} onChange={(e) => setFilterPriceMin(Math.min(parseInt(e.target.value), filterPriceMax))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" style={{ backgroundImage: `linear-gradient(to right, #F27B1A 0%, #F27B1A ${(filterPriceMin/10000)*100}%, var(--bg-slider-track) ${(filterPriceMin/10000)*100}%, var(--bg-slider-track) 100%)` }} />
                   </div>
-                )}
-                <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                  <span className="text-xs text-gray-500">Retail: {formatPrice(fig.retail, currency)}</span>
-                  <button onClick={(e) => { e.stopPropagation(); handleToggleCollection(fig.sku, "wishlist"); }}
-                    className="p-1.5 rounded-lg" style={{ background: isWishlisted ? "rgba(242,123,26,0.2)" : "rgba(99,102,241,0.1)", color: isWishlisted ? "#F27B1A" : "#6366f1" }}>
-                    <Star className="w-4 h-4" fill={isWishlisted ? "currentColor" : "none"} />
-                  </button>
+                  <span className="text-xs text-gray-400 min-w-fit">${filterPriceMin}</span>
+                </div>
+                <div className="flex gap-3 items-center mt-2">
+                  <div className="flex-1">
+                    <input type="range" min="0" max="10000" step="50" value={filterPriceMax} onChange={(e) => setFilterPriceMax(Math.max(parseInt(e.target.value), filterPriceMin))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" style={{ backgroundImage: `linear-gradient(to right, #F27B1A 0%, #F27B1A ${(filterPriceMax/10000)*100}%, var(--bg-slider-track) ${(filterPriceMax/10000)*100}%, var(--bg-slider-track) 100%)` }} />
+                  </div>
+                  <span className="text-xs text-gray-400 min-w-fit">${filterPriceMax}</span>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-gray-500">{filteredBrowseItems.length} figure{filteredBrowseItems.length !== 1 ? "s" : ""} found</p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Sort by</label>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-white px-2 py-1 focus:outline-none focus:border-orange-500/50">
+              {[
+                { value: "newest", label: "Newest" },
+                { value: "oldest", label: "Oldest" },
+                { value: "value-desc", label: "Value ↓" },
+                { value: "value-asc", label: "Value ↑" },
+                { value: "retail-desc", label: "Retail ↓" },
+                { value: "retail-asc", label: "Retail ↑" },
+                { value: "roi-desc", label: "Best ROI" },
+                { value: "name-asc", label: "Name A→Z" },
+                { value: "name-desc", label: "Name Z→A" },
+                { value: "code-asc", label: "Code" },
+              ].map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Show</label>
+            <select value={perPage} onChange={(e) => changePerPage(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-white px-2 py-1 focus:outline-none focus:border-orange-500/50">
+              {[20, 40, 60, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}
+              <option value="All">All</option>
+            </select>
+            <span className="text-xs text-gray-500">per page</span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+        {paginatedFiltered.map((fig) => {
+          const figDb = FIGURES_DB.find(f => f.code === fig.sku);
+          const stats = allStats[fig.sku];
+          const collStatus = collectionMap[fig.code || fig.sku];
+          return (
+            <FigureCard key={fig.sku} figure={figDb || fig} stats={stats} inCollection={!!collStatus} collectionStatus={collStatus || null} onToggleCollection={() => handleToggleCollection(fig.code || fig.sku, "wishlist")} onSelect={(f) => setShowDetail(fig)} currency={currency} onCompare={addToCompare} isInCompare={compareFigures.some(f => f.id === fig.sku)} watchPrice={wishlistTargets[fig.code || fig.sku] || null} onSetWatch={handleSetWatchPrice} region={region} />
           );
         })}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <button onClick={() => setBrowsePage(p => Math.max(1, p - 1))} disabled={browsePage === 1}
-            className="px-3 py-2 rounded-lg border border-gray-700 text-sm disabled:opacity-50">Previous</button>
-          <span className="text-sm text-gray-400">{browsePage} / {totalPages}</span>
-          <button onClick={() => setBrowsePage(p => Math.min(totalPages, p + 1))} disabled={browsePage === totalPages}
-            className="px-3 py-2 rounded-lg border border-gray-700 text-sm disabled:opacity-50">Next</button>
-        </div>
-      )}
-    </div>
+    </>
   );
 
   // ─── WISHLIST TAB ───
@@ -1442,7 +1715,7 @@ function LegionsMarket() {
             </tr>
           </thead>
           <tbody>
-            {CATALOG.slice(0, 50).map(fig => {
+            {CATALOG.map(fig => {
               const stats = statsForFigure(fig.sku);
               return (
                 <tr key={fig.sku} className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer" onClick={() => setShowDetail(fig)}>
@@ -1457,7 +1730,6 @@ function LegionsMarket() {
           </tbody>
         </table>
       </div>
-      <p className="text-center text-xs text-gray-500">Showing first 50 figures. Full catalog view coming soon.</p>
     </div>
   );
 
@@ -1471,70 +1743,141 @@ function LegionsMarket() {
   return (
     <div style={{ background: "var(--bg-main)" }} className="min-h-screen text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-gray-800/50" style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold" style={{ background: "linear-gradient(135deg, #F27B1A, #D46A10)" }}>
-              L
+      <header className="sticky top-0 z-40 border-b border-gray-800/80" style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #F27B1A, #D46A10)" }}>
+                <Package className="w-5 h-5 text-gray-900" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold text-white tracking-tight">Legions Market</h1>
+                <p className="text-xs text-gray-500 -mt-0.5">Collect Smarter</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Legions Market</h1>
-              <p className="text-xs text-gray-400">Collect Smarter</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none">
-              {Object.keys(CURRENCIES).map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            <select value={region} onChange={(e) => setRegion(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none">
-              {Object.keys(REGIONS).map(r => <option key={r} value={r}>{REGIONS[r].flag} {REGIONS[r].label}</option>)}
-            </select>
-
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors">
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-
-            <button onClick={() => setShowFeedback(true)}
-              className="text-sm px-3 py-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors flex items-center gap-1">
-              <Info className="w-4 h-4" />
-              Feedback
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="border-t border-gray-800/50 max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto">
-          {[
-            { id: "browse", label: "Browse", icon: Search },
-            { id: "wishlist", label: "Wishlist", icon: Star },
-            { id: "collection", label: "Collection", icon: Package },
-            { id: "catalog", label: "Catalog", icon: BookOpen }
-          ].map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setCurrentTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-all ${currentTab === tab.id ? "border-orange-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
-                <Icon className="w-4 h-4" />
-                {tab.label}
+            <nav className="flex items-center gap-0.5 sm:gap-1">
+              {/* Desktop nav tabs — hidden on mobile, shown on sm+ */}
+              {[
+                { id: "browse", label: "Market", icon: BarChart3 },
+                { id: "catalog", label: "Catalog", icon: BookOpen },
+                { id: "wishlist", label: `Wishlist (${Object.values(collectionMap).filter(s => s === "wishlist").length})`, icon: Star },
+                { id: "collection", label: `Collection (${Object.values(collectionMap).filter(s => s === "owned" || s === "preorder").length})`, icon: Package },
+              ].map((tab) => (
+                <button key={tab.id} onClick={() => setView(tab.id)}
+                  className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/50" style={view === tab.id ? { background: "rgba(242, 123, 26, 0.15)", color: "#F27B1A" } : {}}>
+                  <tab.icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+              <select value={currency} onChange={(e) => changeCurrency(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-white px-1 sm:px-2 py-1.5 ml-1 sm:ml-3 focus:outline-none focus:border-orange-500/50"
+                title="Currency">
+                {Object.entries(CURRENCIES).map(([code, c]) => (
+                  <option key={code} value={code}>{c.symbol} {code}</option>
+                ))}
+              </select>
+              <select value={region} onChange={(e) => changeRegion(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-white px-1 sm:px-2 py-1.5 ml-1 focus:outline-none focus:border-orange-500/50"
+                title="Market Region">
+                {Object.entries(REGIONS).map(([code, r]) => (
+                  <option key={code} value={code}>{r.flag} {r.label}</option>
+                ))}
+              </select>
+              <button onClick={() => setShowScanModal(true)}
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all ml-1 sm:ml-2"
+                style={{ background: "rgba(242, 123, 26, 0.15)", border: "1px solid rgba(242, 123, 26, 0.5)", color: "#F27B1A" }}
+                title="Scan barcode or add custom figure">
+                <Camera className="w-4 h-4" /><span className="hidden sm:inline">Scan / Add</span>
               </button>
-            );
-          })}
-          <button onClick={() => setShowTaxReport(true)}
-            className="ml-auto px-3 py-3 text-sm flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
-            <DollarSign className="w-4 h-4" />
-            Export
-          </button>
+              <button onClick={toggleTheme}
+                className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all ml-1 sm:ml-2"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            </nav>
+          </div>
         </div>
       </header>
 
+      {/* Mobile Bottom Tab Bar — visible only on small screens */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-gray-800/80" style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex items-center justify-around px-1 py-1.5">
+          {[
+            { id: "browse", label: "Market", icon: BarChart3, count: null },
+            { id: "catalog", label: "Catalog", icon: BookOpen, count: null },
+            { id: "wishlist", label: "Wishlist", icon: Star, count: Object.values(collectionMap).filter(s => s === "wishlist").length },
+            { id: "collection", label: "Collection", icon: Package, count: Object.values(collectionMap).filter(s => s === "owned" || s === "preorder").length },
+          ].map((tab) => (
+            <button key={tab.id} onClick={() => setView(tab.id)}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-all relative"
+              style={view === tab.id ? { color: "#F27B1A" } : { color: "rgba(156,163,175,1)" }}>
+              <div className="relative">
+                <tab.icon className="w-5 h-5" />
+                {tab.count > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1" style={{ background: "#F27B1A" }}>
+                    {tab.count}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-medium">{tab.label}</span>
+            </button>
+          ))}
+          <button onClick={toggleTheme}
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-all text-gray-400">
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <span className="text-[10px] font-medium">Theme</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Price Alert Banner */}
+      {(() => {
+        const alerts = Object.entries(wishlistTargets).filter(([sku, target]) => {
+          if (!target || dismissedAlerts.includes(sku)) return false;
+          const fig = FIGURES_DB.find(f => f.code === sku);
+          if (!fig) return false;
+          const stats = allStats[fig.id];
+          return stats && stats.avg <= target;
+        }).map(([sku, target]) => {
+          const fig = FIGURES_DB.find(f => f.code === sku);
+          const stats = allStats[fig?.id];
+          const catItem = CATALOG.find(c => c.sku === sku);
+          return { sku, name: catItem?.name || fig?.name, market: stats?.avg, target, figure: fig };
+        });
+        if (alerts.length === 0) return null;
+        return (
+          <div className="border-b border-green-500/30" style={{ background: "rgba(34, 197, 94, 0.08)" }}>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 mt-0.5">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-400" />
+                  </div>
+                  <span className="text-xs font-bold text-green-400 uppercase tracking-wide hidden sm:inline">Price Alert</span>
+                </div>
+                <div className="flex-1 flex flex-wrap gap-1.5 sm:gap-2 overflow-hidden">
+                  {alerts.map(a => (
+                    <button key={a.sku} onClick={() => setSelectedFigure(a.figure)}
+                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition cursor-pointer group min-w-0">
+                      <span className="text-xs sm:text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-none">{a.name}</span>
+                      <span className="text-xs text-green-400 font-bold whitespace-nowrap">{formatPrice(a.market, currency)}</span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:inline">(target: {formatPrice(a.target, currency)})</span>
+                      <X className="w-3 h-3 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition flex-shrink-0" onClick={(e) => { e.stopPropagation(); setDismissedAlerts(prev => [...prev, a.sku]); }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {tabContents[currentTab]}
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
+        {view === "browse" && renderBrowse()}
+        {view === "catalog" && renderCatalog()}
+        {view === "wishlist" && renderWishlist()}
+        {view === "collection" && renderCollection()}
       </main>
 
       {/* Detail Modal */}
@@ -1546,8 +1889,8 @@ function LegionsMarket() {
           onToggleCollection={() => handleToggleCollection(showDetail.sku, "wishlist")}
           onClose={() => setShowDetail(null)}
           currency={currency}
-          onCompare={handleCompare}
-          isInCompare={compareList.some(f => f.sku === showDetail.sku)}
+          onCompare={addToCompare}
+          isInCompare={compareFigures.some(f => f.sku === showDetail.sku)}
           watchPrice={wishlistTargets[showDetail.sku]}
           onSetWatch={handleSetWatchPrice}
           region={region}
@@ -1556,12 +1899,12 @@ function LegionsMarket() {
       )}
 
       {/* Compare Drawer */}
-      {compareList.length > 0 && (
+      {compareFigures.length > 0 && (
         <CompareDrawer
-          figures={compareList}
+          figures={compareFigures}
           allStats={allStats}
-          onRemove={handleRemoveCompare}
-          onClose={() => setCompareList([])}
+          onRemove={removeFromCompare}
+          onClose={() => setCompareFigures([])}
           currency={currency}
         />
       )}
