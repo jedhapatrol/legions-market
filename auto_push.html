@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legions Market — Push to GitHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0D0D14; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .glow { box-shadow: 0 0 20px rgba(242,123,26,0.15); }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot-success { background: #22c55e; }
+        .dot-pending { background: #f59e0b; }
+        .dot-error { background: #ef4444; }
+        .dot-idle { background: #6b7280; }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-8">
+            <div class="text-2xl font-bold" style="color: #F27B1A;">⚔ Legions Market</div>
+            <div class="text-sm text-gray-500">— Push to GitHub</div>
+        </div>
+
+        <!-- PAT Config -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 glow">
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">GitHub Configuration</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Repository Owner</label>
+                    <input id="owner" type="text" value="jedhapatrol" class="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Repository Name</label>
+                    <input id="repo" type="text" value="legions-market" class="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-500 block mb-1">Branch</label>
+                <input id="branch" type="text" value="main" class="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-500 block mb-1">Personal Access Token (stored in localStorage as <code class="text-orange-400">gh_pat_lm</code>)</label>
+                <div class="flex gap-2">
+                    <input id="pat" type="password" placeholder="ghp_..." class="flex-1 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                    <button onclick="savePAT()" class="px-4 py-2 text-xs font-medium rounded-lg text-gray-900" style="background: linear-gradient(135deg, #F27B1A, #D46A10);">Save</button>
+                </div>
+                <p id="pat-status" class="text-xs text-gray-600 mt-1"></p>
+            </div>
+        </div>
+
+        <!-- File Selection -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">Files to Push</h2>
+            <div class="space-y-2" id="file-list">
+                <label class="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800">
+                    <input type="checkbox" checked data-file="index.html" class="file-check accent-orange-500">
+                    <span class="text-sm">index.html</span>
+                    <span class="text-xs text-gray-500 ml-auto" id="size-index"></span>
+                </label>
+                <label class="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800">
+                    <input type="checkbox" checked data-file="lm-figures.json" class="file-check accent-orange-500">
+                    <span class="text-sm">lm-figures.json</span>
+                    <span class="text-xs text-gray-500 ml-auto" id="size-figures"></span>
+                </label>
+                <label class="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800">
+                    <input type="checkbox" checked data-file="lm-catalog.json" class="file-check accent-orange-500">
+                    <span class="text-sm">lm-catalog.json</span>
+                    <span class="text-xs text-gray-500 ml-auto" id="size-catalog"></span>
+                </label>
+                <label class="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800">
+                    <input type="checkbox" checked data-file="lm-images.json" class="file-check accent-orange-500">
+                    <span class="text-sm">lm-images.json</span>
+                    <span class="text-xs text-gray-500 ml-auto" id="size-images"></span>
+                </label>
+                <label class="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800">
+                    <input type="checkbox" checked data-file="auto_push.html" class="file-check accent-orange-500">
+                    <span class="text-sm">auto_push.html</span>
+                    <span class="text-xs text-gray-500 ml-auto" id="size-push"></span>
+                </label>
+            </div>
+
+            <!-- Custom file upload -->
+            <div class="mt-4 border-t border-gray-800 pt-4">
+                <label class="text-xs text-gray-500 block mb-2">Add additional file</label>
+                <div class="flex gap-2">
+                    <input id="custom-path" type="text" placeholder="path/in/repo (e.g. api/feedback.js)" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                    <input id="custom-file" type="file" class="hidden" onchange="addCustomFile(this)">
+                    <button onclick="document.getElementById('custom-file').click()" class="px-3 py-2 text-xs font-medium bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Browse</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commit Message -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+            <label class="text-xs text-gray-500 block mb-2">Commit Message</label>
+            <input id="commit-msg" type="text" value="Update Legions Market" class="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+        </div>
+
+        <!-- Push Button -->
+        <button id="push-btn" onclick="pushToGitHub()" class="w-full py-3 rounded-xl font-semibold text-lg transition-all hover:scale-[1.01]" style="background: linear-gradient(135deg, #F27B1A, #D46A10); color: #0D0D14;">
+            🚀 Push to GitHub
+        </button>
+
+        <!-- Log -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-6">
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">Push Log</h2>
+            <pre id="log" class="text-xs text-gray-400 font-mono max-h-64 overflow-y-auto"></pre>
+        </div>
+    </div>
+
+    <script>
+        // ─── PAT MANAGEMENT ───
+        const PAT_KEY = 'gh_pat_lm';
+
+        function loadPAT() {
+            const pat = localStorage.getItem(PAT_KEY);
+            if (pat) {
+                document.getElementById('pat').value = pat;
+                document.getElementById('pat-status').textContent = '✓ Token loaded from localStorage';
+                document.getElementById('pat-status').className = 'text-xs text-green-500 mt-1';
+            }
+        }
+
+        function savePAT() {
+            const pat = document.getElementById('pat').value.trim();
+            if (!pat) return;
+            localStorage.setItem(PAT_KEY, pat);
+            document.getElementById('pat-status').textContent = '✓ Token saved to localStorage';
+            document.getElementById('pat-status').className = 'text-xs text-green-500 mt-1';
+        }
+
+        loadPAT();
+
+        // ─── FILE SIZE DISPLAY ───
+        async function loadFileSizes() {
+            const files = ['index.html', 'lm-figures.json', 'lm-catalog.json', 'lm-images.json', 'auto_push.html'];
+            const ids = ['size-index', 'size-figures', 'size-catalog', 'size-images', 'size-push'];
+            for (let i = 0; i < files.length; i++) {
+                try {
+                    const resp = await fetch(files[i]);
+                    const text = await resp.text();
+                    const kb = (new Blob([text]).size / 1024).toFixed(1);
+                    document.getElementById(ids[i]).textContent = kb + ' KB';
+                    // Store content for push
+                    window['__file_' + files[i].replace(/[^a-z0-9]/g, '_')] = text;
+                } catch(e) {
+                    document.getElementById(ids[i]).textContent = 'not found';
+                }
+            }
+        }
+        loadFileSizes();
+
+        // ─── CUSTOM FILES ───
+        const customFiles = {};
+
+        function addCustomFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const path = document.getElementById('custom-path').value.trim() || file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                customFiles[path] = e.target.result;
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800';
+                label.innerHTML = `
+                    <input type="checkbox" checked data-file="${path}" data-custom="true" class="file-check accent-orange-500">
+                    <span class="text-sm">${path}</span>
+                    <span class="text-xs text-green-500 ml-auto">custom</span>
+                `;
+                document.getElementById('file-list').appendChild(label);
+                document.getElementById('custom-path').value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // ─── LOGGING ───
+        function log(msg, type = 'info') {
+            const el = document.getElementById('log');
+            const colors = { info: '#9ca3af', success: '#22c55e', error: '#ef4444', step: '#F27B1A' };
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `<span style="color:${colors[type] || colors.info}">[${time}] ${msg}</span>\n`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // ─── GITHUB API PUSH ───
+        async function pushToGitHub() {
+            const pat = document.getElementById('pat').value.trim() || localStorage.getItem(PAT_KEY);
+            const owner = document.getElementById('owner').value.trim();
+            const repo = document.getElementById('repo').value.trim();
+            const branch = document.getElementById('branch').value.trim();
+            const commitMsg = document.getElementById('commit-msg').value.trim();
+
+            if (!pat) { log('No PAT configured', 'error'); return; }
+            if (!owner || !repo) { log('Missing owner/repo', 'error'); return; }
+
+            const btn = document.getElementById('push-btn');
+            btn.disabled = true;
+            btn.textContent = 'Pushing...';
+            btn.style.opacity = '0.6';
+
+            const headers = {
+                'Authorization': `token ${pat}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+            const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
+
+            try {
+                // Step 1: Get latest commit SHA
+                log('Getting latest commit...', 'step');
+                const refResp = await fetch(`${apiBase}/git/ref/heads/${branch}`, { headers });
+                if (!refResp.ok) {
+                    const err = await refResp.json();
+                    throw new Error(`Failed to get ref: ${err.message}`);
+                }
+                const refData = await refResp.json();
+                const latestSHA = refData.object.sha;
+                log(`Latest commit: ${latestSHA.substring(0, 7)}`, 'info');
+
+                // Step 2: Get tree of that commit
+                log('Getting tree...', 'step');
+                const commitResp = await fetch(`${apiBase}/git/commits/${latestSHA}`, { headers });
+                const commitData = await commitResp.json();
+                const treeSHA = commitData.tree.sha;
+
+                // Step 3: Collect files to push
+                const filesToPush = [];
+                const checkboxes = document.querySelectorAll('.file-check:checked');
+
+                for (const cb of checkboxes) {
+                    const fileName = cb.dataset.file;
+                    let content;
+
+                    if (cb.dataset.custom === 'true') {
+                        content = customFiles[fileName];
+                    } else {
+                        const key = '__file_' + fileName.replace(/[^a-z0-9]/g, '_');
+                        content = window[key];
+                        if (!content) {
+                            const resp = await fetch(fileName);
+                            content = await resp.text();
+                        }
+                    }
+
+                    if (content) {
+                        filesToPush.push({ path: fileName, content });
+                    }
+                }
+
+                log(`Pushing ${filesToPush.length} files...`, 'step');
+
+                // Step 4: Create blobs
+                const treeItems = [];
+                for (const file of filesToPush) {
+                    log(`  Creating blob: ${file.path}`, 'info');
+                    const blobResp = await fetch(`${apiBase}/git/blobs`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            content: btoa(unescape(encodeURIComponent(file.content))),
+                            encoding: 'base64'
+                        })
+                    });
+                    const blobData = await blobResp.json();
+                    treeItems.push({
+                        path: file.path,
+                        mode: '100644',
+                        type: 'blob',
+                        sha: blobData.sha
+                    });
+                }
+
+                // Step 5: Create tree
+                log('Creating tree...', 'step');
+                const treeResp = await fetch(`${apiBase}/git/trees`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ base_tree: treeSHA, tree: treeItems })
+                });
+                const treeData = await treeResp.json();
+
+                // Step 6: Create commit
+                log('Creating commit...', 'step');
+                const newCommitResp = await fetch(`${apiBase}/git/commits`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        message: commitMsg,
+                        tree: treeData.sha,
+                        parents: [latestSHA]
+                    })
+                });
+                const newCommitData = await newCommitResp.json();
+
+                // Step 7: Update ref
+                log('Updating branch reference...', 'step');
+                await fetch(`${apiBase}/git/refs/heads/${branch}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({ sha: newCommitData.sha })
+                });
+
+                log(`✓ Successfully pushed! Commit: ${newCommitData.sha.substring(0, 7)}`, 'success');
+                log(`  View: https://github.com/${owner}/${repo}/commit/${newCommitData.sha}`, 'success');
+
+            } catch (err) {
+                log(`✗ Push failed: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Push to GitHub';
+                btn.style.opacity = '1';
+            }
+        }
+    </script>
+</body>
+</html>

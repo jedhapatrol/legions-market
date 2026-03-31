@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0D0D14">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Legions Market - Collect Smarter</title>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
+        "lucide-react": "https://esm.sh/lucide-react@0.383.0?external=react,react-dom"
+      }
+    }
+    </script>
+
+    <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg-main: linear-gradient(180deg, #0D0D14 0%, #14141F 50%, #0D0D14 100%);
+            --bg-header: rgba(13,13,20,0.92);
+            --bg-modal: rgba(0,0,0,0.85);
+            --bg-tooltip: #14141F;
+            --border-tooltip: #2A2A3D;
+            --bg-input: #1a1a2e;
+            --bg-slider-track: #374151;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --shadow-card: none;
+        }
+
+        .theme-light {
+            --bg-main: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+            --bg-header: rgba(255,255,255,0.95);
+            --bg-modal: rgba(0,0,0,0.4);
+            --bg-tooltip: #ffffff;
+            --border-tooltip: #e2e8f0;
+            --bg-input: #ffffff;
+            --bg-slider-track: #cbd5e1;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        html { background-color: #0D0D14; overflow-x: hidden; }
+        body { margin: 0; background-color: #0D0D14; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+        .theme-light ~ html, .theme-light { background-color: #f8fafc !important; }
+        .theme-light body, body:has(.theme-light) { background-color: #f8fafc !important; }
+        .theme-light { --page-bg: #f8fafc; }
+        select { background-image: none; }
+
+        .theme-light { color: #1e293b; }
+        .theme-light .bg-gray-900 { background-color: #f1f5f9 !important; }
+        .theme-light .bg-gray-800 { background-color: #ffffff !important; }
+        .theme-light .bg-gray-700 { background-color: #f1f5f9 !important; }
+        .theme-light .bg-gray-800\/50 { background-color: rgba(255,255,255,0.7) !important; }
+        .theme-light .bg-gray-800\/80 { background-color: rgba(255,255,255,0.9) !important; }
+        .theme-light .bg-gray-800\/30 { background-color: rgba(255,255,255,0.85) !important; }
+        .theme-light .bg-gray-800\/40 { background-color: rgba(241,245,249,0.9) !important; }
+        .theme-light .bg-gray-700\/50 { background-color: rgba(241,245,249,0.5) !important; }
+        .theme-light .bg-gray-700\/30 { background-color: rgba(241,245,249,0.4) !important; }
+
+        .theme-light .text-white { color: #1e293b !important; }
+        .theme-light .text-gray-300 { color: #475569 !important; }
+        .theme-light .text-gray-400 { color: #64748b !important; }
+        .theme-light .text-gray-500 { color: #78869b !important; }
+        .theme-light .text-gray-600 { color: #78869b !important; }
+
+        .theme-light .border-gray-700 { border-color: #e2e8f0 !important; }
+        .theme-light .border-gray-800 { border-color: #e2e8f0 !important; }
+        .theme-light .border-gray-600 { border-color: #e2e8f0 !important; }
+        .theme-light .border-gray-800\/80 { border-color: rgba(226,232,240,0.8) !important; }
+        .theme-light .border-gray-700\/50 { border-color: rgba(226,232,240,0.7) !important; }
+        .theme-light .border-gray-500\/30 { border-color: rgba(203,213,225,0.5) !important; }
+        .theme-light .border-green-500\/30 { border-color: rgba(34,197,94,0.25) !important; }
+        .theme-light .border-blue-500\/30 { border-color: rgba(59,130,246,0.25) !important; }
+        .theme-light .border-orange-500\/30 { border-color: rgba(242,123,26,0.25) !important; }
+
+        .theme-light .divide-gray-800 > :not([hidden]) ~ :not([hidden]) { border-color: #e2e8f0 !important; }
+        .theme-light .ring-gray-700 { --tw-ring-color: #e2e8f0 !important; }
+        .theme-light .focus\:ring-orange-500\/20:focus { --tw-ring-color: rgba(242,123,26,0.3) !important; }
+
+        .theme-light .hover\:bg-gray-800:hover { background-color: #f1f5f9 !important; }
+        .theme-light .hover\:bg-gray-800\/50:hover { background-color: rgba(241,245,249,0.7) !important; }
+        .theme-light .hover\:bg-gray-800\/70:hover { background-color: rgba(241,245,249,0.9) !important; }
+        .theme-light .hover\:bg-gray-700:hover { background-color: #e2e8f0 !important; }
+        .theme-light .hover\:bg-gray-700\/50:hover { background-color: rgba(241,245,249,0.7) !important; }
+        .theme-light .hover\:bg-gray-700\/30:hover { background-color: rgba(241,245,249,0.5) !important; }
+        .theme-light .hover\:text-white:hover { color: #1e293b !important; }
+        .theme-light .hover\:border-gray-500:hover { border-color: #cbd5e1 !important; }
+
+        .theme-light .from-gray-800\/80 { --tw-gradient-from: rgba(255,255,255,0.95) !important; }
+        .theme-light .to-gray-900\/90 { --tw-gradient-to: rgba(241,245,249,0.98) !important; }
+
+        .theme-light .placeholder-gray-500::placeholder { color: #94a3b8 !important; }
+        .theme-light .placeholder\:text-gray-500::placeholder { color: #94a3b8 !important; }
+
+        .theme-light ::selection { background: rgba(242, 123, 26, 0.2); }
+
+        .theme-light .rounded-xl { box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+        .theme-light .rounded-2xl { box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); }
+
+        .theme-light ::-webkit-scrollbar-track { background: #f1f5f9; }
+        .theme-light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        .theme-light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @media (max-width: 640px) {
+          .text-lg { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+      import React from 'react';
+      import ReactDOM from 'react-dom';
+      import { createRoot } from 'react-dom/client';
+      import * as Recharts from 'recharts';
+      import * as lucideReact from 'lucide-react';
+      import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
+
+      window.React = React;
+      window.ReactDOM = ReactDOM;
+      window.ReactDOM.createRoot = createRoot;
+      window.Recharts = Recharts;
+      window.lucideReact = lucideReact;
+      window.XLSX = XLSX;
+    </script>
+
+    <script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+const { Search, Plus, Minus, TrendingUp, TrendingDown, ChevronDown, ChevronUp, ChevronRight, Star, Package, DollarSign, BarChart3, Filter, X, Menu, BookOpen, ShoppingCart, Tag, ArrowUpDown, Info, CheckCircle, AlertTriangle, ExternalLink, Sun, Moon, Edit3, Calendar, CreditCard, Clock, Camera, Image, PlayCircle, Shield, Trash2, Save, Eye, EyeOff, Copy, Upload, Layers, Bell } = lucideReact;
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } = Recharts;
+
+// ─── SERIES INFO ───
+const SERIES_INFO = {
+  "Mythic Legions": { name: "Mythic Legions", color: "#F27B1A" },
+  "Cosmic Legions": { name: "Cosmic Legions", color: "#6366f1" },
+  "Figura Obscura": { name: "Figura Obscura", color: "#8b5cf6" }
+};
+
+// ─── CURRENCIES ───
+const CURRENCIES = {
+  USD: { symbol: "$", label: "US Dollar", rate: 1.0 },
+  EUR: { symbol: "€", label: "Euro", rate: 0.92 },
+  GBP: { symbol: "£", label: "British Pound", rate: 0.80 },
+  CAD: { symbol: "C$", label: "Canadian Dollar", rate: 1.36 },
+  AUD: { symbol: "A$", label: "Australian Dollar", rate: 1.52 },
+  JPY: { symbol: "¥", label: "Japanese Yen", rate: 147.5 }
+};
+
+// ─── BADGE COMPONENT ───
+function Badge({ color, children }) {
+  return (
+    <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: color + "20", color: color, border: `1px solid ${color}40` }}>
+      {children}
+    </span>
+  );
+}
+
+// ─── PRICE FORMATTER ───
+function formatPrice(price, currency = "USD") {
+  const c = CURRENCIES[currency] || CURRENCIES.USD;
+  const adjusted = price * c.rate;
+  if (currency === "JPY") return `${c.symbol}${Math.round(adjusted)}`;
+  return `${c.symbol}${adjusted.toFixed(2)}`;
+}
+
+// ─── IMAGE RESOLVER ───
+let PRODUCT_IMAGES = {};
+
+function getImageSrc(code) {
+  const img = PRODUCT_IMAGES[code];
+  if (!img) return null;
+  if (img.startsWith('http')) return img;
+  return `https://pub-50345a5547ed4604998ff1cb3b969d91.r2.dev/${img}`;
+}
+
+const PLACEHOLDER_BG = "#1a1a2e";
+function PlaceholderImage({ code, name }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: PLACEHOLDER_BG }}>
+      <span className="text-2xl font-bold opacity-30" style={{ color: "#e0a030" }}>{code}</span>
+    </div>
+  );
+}
+
+function FigureImage({ code, name, className = "", photo }) {
+  const [failed, setFailed] = useState(false);
+  const src = photo || getImageSrc(code);
+  if (!src || failed) return <PlaceholderImage code={code} name={name} />;
+  return (
+    <img
+      src={src}
+      alt={name}
+      loading="lazy"
+      className={className}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+// ─── REGIONS ───
+const REGIONS = {
+  Global: { label: "Global", ebayDomain: "www.ebay.com", mkrid: "711-53200-19255-0", flag: "🌐" },
+  US: { label: "US", ebayDomain: "www.ebay.com", mkrid: "711-53200-19255-0", flag: "🇺🇸" },
+  EU: { label: "EU", ebayDomain: "www.ebay.de", mkrid: "707-53477-19255-0", flag: "🇪🇺" },
+  UK: { label: "UK", ebayDomain: "www.ebay.co.uk", mkrid: "710-53481-19255-0", flag: "🇬🇧" },
+  Asia: { label: "Asia", ebayDomain: "www.ebay.com", mkrid: "711-53200-19255-0", flag: "🌏" },
+};
+
+// ─── EBAY AFFILIATE LINK BUILDER ───
+const EPN_CAMPAIGN_ID = "5339146216";
+
+function buildEbaySearchUrl(name, code, region, scale) {
+  const r = REGIONS[region] || REGIONS.Global;
+  const query = encodeURIComponent(`Mythic Legions ${code || ""} ${name} ${scale || ""}`.trim());
+  const base = `https://${r.ebayDomain}/sch/i.html?_nkw=${query}&_sacat=261068`;
+  return `${base}&mkevt=1&mkcid=1&mkrid=${r.mkrid}&campid=${EPN_CAMPAIGN_ID}&toolid=10001`;
+}
+
+// ─── STORE LINK BUILDER ───
+function buildStoreLink(figureCode) {
+  return `https://store-horsemen.myshopify.com`;
+}
+
+// ─── TAX REPORT EXPORT ───
+function exportTaxReport(collectionMap, ownedDetails, forSaleDetails, preorderDetails, soldDetails, currency, dateFrom, dateTo) {
+  const wb = XLSX.utils.book_new();
+  const currSymbol = (CURRENCIES[currency]?.symbol) || "$";
+  const dFrom = dateFrom ? new Date(dateFrom + "T00:00:00") : null;
+  const dTo = dateTo ? new Date(dateTo + "T23:59:59") : null;
+  const inRange = (dateStr) => {
+    if (!dFrom && !dTo) return true;
+    if (!dateStr) return !dFrom;
+    const d = new Date(dateStr);
+    if (isNaN(d)) return true;
+    if (dFrom && d < dFrom) return false;
+    if (dTo && d > dTo) return false;
+    return true;
+  };
+
+  const purchaseRows = [];
+  Object.entries(collectionMap).forEach(([sku, status]) => {
+    if (status !== "owned" && status !== "preorder" && status !== "sold") return;
+    const fig = FIGURES_DB.find(f => f.code === sku);
+    const cat = CATALOG.find(c => c.sku === sku);
+    const name = fig?.name || cat?.name || sku;
+    const series = fig?.series || cat?.series || "";
+
+    if (status === "sold") {
+      const d = soldDetails?.[sku] || {};
+      if (!inRange(d.soldDate)) return;
+      purchaseRows.push({
+        "SKU": sku,
+        "Figure Name": name,
+        "Series": series,
+        "Type": "Sold",
+        "Sold Price": d.soldPrice || 0,
+        "Price Paid": d.costBasis || 0,
+        "Notes": d.notes || ""
+      });
+    } else if (status === "owned") {
+      const copies = ownedDetails?.[sku] || [{}];
+      copies.forEach((copy, i) => {
+        if (!inRange(copy?.purchaseDate)) return;
+        purchaseRows.push({
+          "SKU": sku,
+          "Figure Name": name,
+          "Series": series,
+          "Type": "Owned",
+          "Copy #": copies.length > 1 ? i + 1 : 1,
+          "Price Paid": copy?.pricePaid || 0,
+          "Purchase Date": copy?.purchaseDate || "",
+          "Purchased From": copy?.purchaseFrom || "",
+          "Condition": copy?.condition || "",
+          "Notes": copy?.notes || ""
+        });
+      });
+    } else if (status === "preorder") {
+      const copies = preorderDetails?.[sku] || [{}];
+      copies.forEach((copy, i) => {
+        if (!inRange(copy?.date)) return;
+        purchaseRows.push({
+          "SKU": sku,
+          "Figure Name": name,
+          "Series": series,
+          "Type": "Pre-Order",
+          "Price Paid": copy?.deposit || 0,
+          "Purchase Date": copy?.date || "",
+          "Purchased From": copy?.retailer || "",
+          "Notes": copy?.notes || ""
+        });
+      });
+    }
+  });
+
+  if (purchaseRows.length) {
+    const totalPricePaid = purchaseRows.reduce((s, r) => s + (r["Price Paid"] || 0), 0);
+    purchaseRows.push({ "SKU": "", "Figure Name": "TOTAL", "Series": "", "Type": "", "Price Paid": totalPricePaid, "Notes": "" });
+  }
+  const wsP = XLSX.utils.json_to_sheet(purchaseRows.length ? purchaseRows : [{ "SKU": "", "Figure Name": "No purchases recorded", "Series": "", "Price Paid": "" }]);
+  wsP["!cols"] = [{ wch: 10 }, { wch: 35 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 15 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsP, "Purchases");
+
+  const saleRows = [];
+  Object.entries(forSaleDetails || {}).forEach(([sku, details]) => {
+    if (!inRange(details?.listedDate)) return;
+    const fig = FIGURES_DB.find(f => f.code === sku);
+    const cat = CATALOG.find(c => c.sku === sku);
+    const name = fig?.name || cat?.name || sku;
+    const series = fig?.series || cat?.series || "";
+    const copies = ownedDetails?.[sku] || [{}];
+    const costBasis = copies[0]?.pricePaid || 0;
+    const askingPrice = details?.askingPrice || 0;
+
+    saleRows.push({
+      "SKU": sku,
+      "Figure Name": name,
+      "Series": series,
+      "Asking Price": askingPrice,
+      "Cost Basis": costBasis,
+      "Est. Profit/Loss": askingPrice > 0 && costBasis > 0 ? askingPrice - costBasis : "",
+      "Condition": details?.condition || "",
+      "Listed Date": details?.listedDate || "",
+      "Notes": details?.notes || ""
+    });
+  });
+  const wsS = XLSX.utils.json_to_sheet(saleRows.length ? saleRows : [{ "SKU": "", "Figure Name": "No listings recorded", "Series": "", "Asking Price": "" }]);
+  wsS["!cols"] = [{ wch: 10 }, { wch: 35 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 15 }, { wch: 14 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsS, "Active Listings");
+
+  const soldRows = [];
+  Object.entries(soldDetails || {}).forEach(([sku, d]) => {
+    if (!inRange(d.soldDate)) return;
+    const fig = FIGURES_DB.find(f => f.code === sku);
+    const cat = CATALOG.find(c => c.sku === sku);
+    const name = fig?.name || cat?.name || sku;
+    const series = fig?.series || cat?.series || "";
+    const netProfit = (d.soldPrice || 0) - (d.costBasis || 0) - (d.platformFees || 0) - (d.shippingCost || 0);
+    soldRows.push({
+      "SKU": sku,
+      "Figure Name": name,
+      "Series": series,
+      "Sold Price": d.soldPrice || 0,
+      "Cost Basis": d.costBasis || 0,
+      "Platform Fees": d.platformFees || 0,
+      "Shipping Cost": d.shippingCost || 0,
+      "Net Profit": netProfit,
+      "Sale Date": d.soldDate || "",
+      "Notes": d.notes || ""
+    });
+  });
+  const wsSold = XLSX.utils.json_to_sheet(soldRows.length ? soldRows : [{ "SKU": "", "Figure Name": "No completed sales", "Series": "", "Sold Price": "" }]);
+  wsSold["!cols"] = [{ wch: 10 }, { wch: 35 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsSold, "Completed Sales");
+
+  const totalPurchases = purchaseRows.filter(r => r["Figure Name"] !== "TOTAL").reduce((s, r) => s + (r["Price Paid"] || 0), 0);
+  const totalAsking = saleRows.reduce((s, r) => s + (r["Asking Price"] || 0), 0);
+  const ownedCount = purchaseRows.filter(r => r.Type === "Owned").length;
+  const soldCount = soldRows.filter(r => r["Sold Price"] > 0).length;
+  const totalSoldRevenue = soldRows.reduce((s, r) => s + (r["Sold Price"] || 0), 0);
+  const totalSoldNet = soldRows.reduce((s, r) => s + (r["Net Profit"] || 0), 0);
+
+  const summaryData = [
+    ["Legions Market — Collection Tax Report"],
+    ["Generated", new Date().toLocaleDateString()],
+    ["Date Range", dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : dateFrom ? `From ${dateFrom}` : dateTo ? `Through ${dateTo}` : "All Time"],
+    ["Currency", currency],
+    [],
+    ["COLLECTION OVERVIEW"],
+    ["Figures Owned", ownedCount],
+    ["Figures Sold", soldCount],
+    [],
+    ["PURCHASE SUMMARY"],
+    ["Total Spent (Price Paid)", totalPurchases],
+    [],
+    ["COMPLETED SALES"],
+    ["Figures Sold", soldCount],
+    ["Total Revenue", totalSoldRevenue],
+    ["Net Profit from Sales", totalSoldNet],
+    [],
+    ["ACTIVE LISTINGS"],
+    ["Total Asking Value", totalAsking],
+    [],
+    ["Note: This report is for informational purposes only."],
+    ["Consult a tax professional for official tax filings."]
+  ];
+  const wsSum = XLSX.utils.aoa_to_sheet(summaryData);
+  wsSum["!cols"] = [{ wch: 35 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsSum, "Summary");
+
+  const suffix = dateFrom && dateTo ? `${dateFrom}_to_${dateTo}` : new Date().getFullYear();
+  XLSX.writeFile(wb, `LM_Tax_Report_${suffix}.xlsx`);
+}
+
+// ─── COMPLETE FIGURE CATALOG ───
+let FIGURES_DB = [];
+let CATALOG = [];
+
+// ─── GENERATE SALES DATA ───
+function generateSalesData(fig) {
+  const rng = (s) => { let h = 0; for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; } return Math.abs(h); };
+  const seed = rng(fig.code);
+  const sales = [];
+  const baseMultiplier = 0.8 + ((seed % 100) / 100) * 1.2;
+  const months = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"];
+  const conditions = ["New/Sealed", "Opened/Displayed", "Like New", "Very Good"];
+  const condMult = { "New/Sealed": 1.0, "Opened/Displayed": 0.88, "Like New": 0.82, "Very Good": 0.70 };
+  const regions = ["US", "US", "US", "EU", "UK", "Asia", "Asia"];
+  months.forEach((m, mi) => {
+    const numSales = 3 + (seed + mi) % 5;
+    for (let i = 0; i < numSales; i++) {
+      const cond = conditions[(seed + i + mi) % conditions.length];
+      const trendFactor = 1 + (mi - 3) * 0.02 * (seed % 2 === 0 ? 1 : -1);
+      const noise = 0.9 + ((seed * (i + 1) * (mi + 1)) % 200) / 1000;
+      const price = Math.round(fig.retail * baseMultiplier * condMult[cond] * trendFactor * noise * 100) / 100;
+      const day = 1 + ((seed + i * 3 + mi * 7) % 28);
+      sales.push({ date: `${m}-${String(day).padStart(2, "0")}`, price, condition: cond, type: (seed + i) % 4 === 0 ? "Auction" : "Buy It Now", region: regions[(seed + i) % regions.length] });
+    }
+  });
+  return sales.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ─── STATS CALCULATION ───
+function calcStats(fig, regionFilter) {
+  const allSales = generateSalesData(fig);
+  const sales = regionFilter && regionFilter !== "Global" ? allSales.filter(s => s.region === regionFilter) : allSales;
+  if (sales.length === 0) return calcStats(fig);
+  const prices = sales.map((s) => s.price);
+  const newPrices = sales.filter((s) => s.condition === "New/Sealed").map((s) => s.price);
+  const usedPrices = sales.filter((s) => s.condition !== "New/Sealed").map((s) => s.price);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const avgNew = newPrices.length ? newPrices.reduce((a, b) => a + b, 0) / newPrices.length : avg;
+  const avgUsed = usedPrices.length ? usedPrices.reduce((a, b) => a + b, 0) / usedPrices.length : avg * 0.85;
+  const mid = Math.floor(sales.length / 2);
+  const earlyAvg = sales.slice(mid).reduce((a, s) => a + s.price, 0) / Math.max(sales.length - mid, 1);
+  const lateAvg = sales.slice(0, mid).reduce((a, s) => a + s.price, 0) / Math.max(mid, 1);
+  const trendPct = ((lateAvg - earlyAvg) / earlyAvg) * 100;
+  const trend = trendPct > 3 ? "rising" : trendPct < -3 ? "falling" : "stable";
+  const roi = ((avg - fig.retail) / fig.retail) * 100;
+  const monthlyData = {};
+  sales.forEach((s) => {
+    const m = s.date.substring(0, 7);
+    if (!monthlyData[m]) monthlyData[m] = [];
+    monthlyData[m].push(s.price);
+  });
+  const chartData = Object.keys(monthlyData).sort().map((m) => {
+    const p = monthlyData[m];
+    return { month: m.substring(5), avg: Math.round(p.reduce((a, b) => a + b, 0) / p.length), sales: p.length };
+  });
+  return {
+    avg: Math.round(avg), avgNew: Math.round(avgNew), avgUsed: Math.round(avgUsed),
+    low: Math.round(Math.min(...prices)), high: Math.round(Math.max(...prices)),
+    totalSales: sales.length, trend, trendPct: Math.round(trendPct * 10) / 10,
+    roi: Math.round(roi * 10) / 10, chartData, sales,
+    fairBuyNew: Math.round(avgNew * 0.95), fairBuyUsed: Math.round(avgUsed * 0.95),
+    fairSellNew: Math.round(avgNew * 1.02), fairSellUsed: Math.round(avgUsed * 1.02),
+  };
+}
+
+// ─── CONSENT BANNER ───
+function ConsentBanner({ onAccept, onDecline }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4" style={{ background: "rgba(13,13,20,0.97)", borderTop: "1px solid rgba(242,123,26,0.3)", backdropFilter: "blur(12px)" }}>
+      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex-1 text-sm text-gray-300">
+          <p className="font-medium text-white mb-1">Welcome to Legions Market</p>
+          <p className="text-xs text-gray-400">Your collection data is stored locally in your browser. We never upload personal data. <button onClick={() => { window.dispatchEvent(new CustomEvent('lm-show-privacy')); }} className="text-orange-400 underline hover:text-orange-300">Privacy Policy</button></p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={onDecline} className="px-4 py-2 text-xs font-medium text-gray-400 border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors">Dismiss</button>
+          <button onClick={onAccept} className="px-4 py-2 text-xs font-medium text-gray-900 rounded-lg transition-colors" style={{ background: "linear-gradient(135deg, #F27B1A, #D46A10)" }}>Got it</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PRIVACY POLICY MODAL ───
+function PrivacyPolicyModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "var(--bg-modal)" }} onClick={onClose}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-white">Privacy Policy</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-4 text-sm text-gray-300">
+          <p className="text-xs text-gray-500">Last updated: March 31, 2026</p>
+
+          <div>
+            <h3 className="font-semibold text-white mb-1">What We Collect</h3>
+            <p>Legions Market is designed for privacy. Your collection, wishlist, and pricing data is stored exclusively in your browser's local storage and never transmitted to our servers or any third party without your explicit action.</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-1">How Your Data Works</h3>
+            <p>All your personal collection data (figures owned, prices paid, notes, etc.) stays on your device. We do not have access to this information. If you choose to export your data as an Excel file, you control where that file goes.</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-1">External Links</h3>
+            <p>When you click links to Four Horsemen Store, eBay, or other retailers, you are leaving Legions Market. Those sites have their own privacy policies. We recommend reviewing them.</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-1">No Analytics or Tracking</h3>
+            <p>Legions Market does not use Google Analytics, cookies, or browser tracking. We do not collect your IP address, device information, or any identifying data.</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-1">Contact</h3>
+            <p>For privacy questions, you can reach out through the feedback form or GitHub repository.</p>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-900 rounded-lg" style={{ background: "linear-gradient(135deg, #F27B1A, #D46A10)" }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TAX REPORT MODAL ───
+function TaxReportModal({ onClose, onExport }) {
+  const now = new Date();
+  const yearStart = `${now.getFullYear()}-01-01`;
+  const today = now.toISOString().split("T")[0];
+  const [dateFrom, setDateFrom] = useState(yearStart);
+  const [dateTo, setDateTo] = useState(today);
+  const [preset, setPreset] = useState("ytd");
+
+  const applyPreset = (p) => {
+    setPreset(p);
+    const d = new Date();
+    if (p === "ytd") { setDateFrom(`${d.getFullYear()}-01-01`); setDateTo(today); }
+    else if (p === "last-year") { setDateFrom(`${d.getFullYear()-1}-01-01`); setDateTo(`${d.getFullYear()-1}-12-31`); }
+    else if (p === "last-90") { const f = new Date(d); f.setDate(f.getDate()-90); setDateFrom(f.toISOString().split("T")[0]); setDateTo(today); }
+    else if (p === "all") { setDateFrom(""); setDateTo(""); }
+  };
+
+  return React.createElement("div", {
+    className: "fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4",
+    onClick: (e) => { if (e.target === e.currentTarget) onClose(); }
+  },
+    React.createElement("div", { className: "bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md space-y-5" },
+      React.createElement("div", { className: "flex items-center justify-between" },
+        React.createElement("h2", { className: "text-xl font-bold text-white" }, "Export Tax Report"),
+        React.createElement("button", { onClick: onClose, className: "text-gray-400 hover:text-white text-2xl leading-none" }, "\u00d7")
+      ),
+      React.createElement("div", { className: "space-y-3" },
+        React.createElement("label", { className: "text-sm text-gray-400 block" }, "Date Range"),
+        React.createElement("div", { className: "flex flex-wrap gap-2" },
+          ...[
+            { id: "ytd", label: "Year to Date" },
+            { id: "last-year", label: "Last Year" },
+            { id: "last-90", label: "Last 90 Days" },
+            { id: "all", label: "All Time" },
+            { id: "custom", label: "Custom" }
+          ].map(p => React.createElement("button", {
+            key: p.id,
+            onClick: () => applyPreset(p.id),
+            className: `px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${preset === p.id ? "bg-indigo-500/30 border-indigo-500 text-indigo-300" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"}`,
+            style: { border: `1px solid ${preset === p.id ? "rgba(99,102,241,0.5)" : "rgba(55,65,81,1)"}` }
+          }, p.label))
+        )
+      ),
+      (preset === "custom" || (preset !== "all")) && React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+        React.createElement("div", null,
+          React.createElement("label", { className: "text-xs text-gray-500 block mb-1" }, "From"),
+          React.createElement("input", {
+            type: "date", value: dateFrom,
+            onChange: (e) => { setDateFrom(e.target.value); setPreset("custom"); },
+            className: "w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-indigo-500/50"
+          })
+        ),
+        React.createElement("div", null,
+          React.createElement("label", { className: "text-xs text-gray-500 block mb-1" }, "To"),
+          React.createElement("input", {
+            type: "date", value: dateTo,
+            onChange: (e) => { setDateTo(e.target.value); setPreset("custom"); },
+            className: "w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-indigo-500/50"
+          })
+        )
+      ),
+      React.createElement("p", { className: "text-xs text-gray-500" },
+        preset === "all" ? "Includes all purchases, sales, and listings regardless of date." : `Report will include transactions from ${dateFrom || "earliest"} to ${dateTo || "today"}.`
+      ),
+      React.createElement("button", {
+        onClick: () => { onExport(preset === "all" ? null : dateFrom, preset === "all" ? null : dateTo); onClose(); },
+        className: "w-full py-3 rounded-xl font-semibold text-white transition-all",
+        style: { background: "linear-gradient(135deg, #6366f1, #818cf8)" }
+      }, "Generate Report")
+    )
+  );
+}
+
+// ─── FEEDBACK MODAL ───
+function FeedbackModal({ onClose }) {
+  const [fbCategory, setFbCategory] = useState("bug");
+  const [fbMessage, setFbMessage] = useState("");
+  const [fbFigure, setFbFigure] = useState("");
+  const [fbStatus, setFbStatus] = useState(null);
+
+  const handleSubmit = async () => {
+    if (fbMessage.trim().length < 10) { setFbStatus("short"); return; }
+    setFbStatus("sending");
+    try {
+      const resp = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: fbCategory,
+          message: fbMessage.trim(),
+          figureCode: fbFigure.trim() || null,
+          userAgent: navigator.userAgent
+        })
+      });
+      if (resp.ok) {
+        setFbStatus("success");
+        setTimeout(onClose, 2000);
+      } else { setFbStatus("error"); }
+    } catch { setFbStatus("error"); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "var(--bg-modal)" }} onClick={onClose}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-white">Send Feedback</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+
+        {fbStatus === "success" ? (
+          <div className="text-center py-8">
+            <div className="text-3xl mb-2 text-green-400">✓</div>
+            <p className="text-green-400 font-semibold">Thank you! Your feedback has been submitted.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3">
+              <label className="text-xs text-gray-400 block mb-1">Category</label>
+              <select value={fbCategory} onChange={(e) => setFbCategory(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50">
+                <option value="bug">Bug Report</option>
+                <option value="feature">Feature Request</option>
+                <option value="data">Data Error (wrong price, missing figure, etc.)</option>
+                <option value="other">Other Feedback</option>
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="text-xs text-gray-400 block mb-1">Figure Code (optional)</label>
+              <input type="text" value={fbFigure} onChange={(e) => setFbFigure(e.target.value)}
+                placeholder="e.g. ML001, CL002"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50" />
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-gray-400 block mb-1">Message</label>
+              <textarea value={fbMessage} onChange={(e) => setFbMessage(e.target.value)}
+                placeholder="Describe the issue or suggestion..."
+                rows={4}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:border-orange-500/50 resize-none" />
+              {fbStatus === "short" && (
+                <p className="text-red-400 text-xs mt-1">Please enter at least 10 characters.</p>
+              )}
+              {fbStatus === "error" && (
+                <p className="text-red-400 text-xs mt-1">Something went wrong. Please try again.</p>
+              )}
+            </div>
+
+            <button onClick={handleSubmit} disabled={fbStatus === "sending"}
+              className="w-full py-2.5 rounded-lg font-semibold text-sm transition-all"
+              style={{ background: fbStatus === "sending" ? "#666" : "#F27B1A", color: "#0D0D14" }}>
+              {fbStatus === "sending" ? "Submitting..." : "Submit Feedback"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── FAIR PRICE GAUGE ───
+function FairPriceGauge({ price, low, avg, high, label, currency }) {
+  const percent = avg && high > low ? ((price - low) / (high - low)) * 100 : 50;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-500">Fair Price Range</span>
+        <span className="text-gray-400">{formatPrice(low, currency)} → {formatPrice(high, currency)}</span>
+      </div>
+      <div className="w-full h-2 bg-gray-700/50 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${percent}%`, background: "linear-gradient(90deg, #22c55e, #F27B1A)" }}></div>
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-green-400 font-semibold">Low: {formatPrice(low, currency)}</span>
+        <span className="text-gray-400">Avg: {formatPrice(avg, currency)}</span>
+        <span className="text-orange-400 font-semibold">High: {formatPrice(high, currency)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── DETAIL MODAL ───
+function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose, currency, onCompare, isInCompare, watchPrice, onSetWatch, region }) {
+  const [detailWatchInput, setDetailWatchInput] = useState(false);
+  const [detailWatchVal, setDetailWatchVal] = useState(watchPrice || "");
+  if (!figure) return null;
+  const seriesInfo = SERIES_INFO[figure.series] || { name: figure.series, color: "#888" };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ background: "var(--bg-modal)" }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-gray-800 px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-xl font-bold text-white">{figure.name}</h2>
+            <p className="text-sm text-gray-400">{figure.subtitle || ""}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <div className="aspect-[3/4] bg-gray-800 rounded-xl overflow-hidden">
+              <FigureImage code={figure.code} name={figure.name} className="w-full h-full object-cover" />
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Item Code</span><span className="text-white font-semibold">{figure.code}</span></div>
+              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Series</span><Badge color={seriesInfo.color}>{figure.series}</Badge></div>
+              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">License</span><span className="text-white">{figure.license}</span></div>
+              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Retail</span><span className="text-white">{formatPrice(figure.retail, currency)}</span></div>
+            </div>
+            <button onClick={() => onToggleCollection()}
+              className={`w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all`} style={inCollection ? { background: "rgba(242, 123, 26, 0.2)", color: "#F27B1A", border: "1px solid rgba(242, 123, 26, 0.5)" } : { background: "#F27B1A", color: "#0D0D14" }}>
+              <Star className="w-4 h-4" fill={inCollection ? "currentColor" : "none"} />
+              {inCollection ? "On Your Wishlist" : "Add to Wishlist"}
+            </button>
+            <a href={buildEbaySearchUrl(figure.name, figure.code, region)} target="_blank" rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500" style={{ background: "#1C1C2A" }}>
+              <ExternalLink className="w-4 h-4" />Search on eBay
+            </a>
+            <a href={buildStoreLink(figure.code)} target="_blank" rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-orange-500/40 text-orange-400 hover:text-orange-300 hover:border-orange-500/70 hover:bg-orange-500/10" style={{ background: "rgba(242,123,26,0.08)" }}>
+              <ShoppingCart className="w-4 h-4" />Four Horsemen Store
+            </a>
+            {onCompare && (
+              <button onClick={() => { onCompare(figure); onClose(); }}
+                className={`w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border ${isInCompare ? "border-purple-500/50 text-purple-400 bg-purple-500/10" : "border-gray-700 text-gray-400 hover:text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/5"}`}>
+                <Layers className="w-4 h-4" />{isInCompare ? "In Compare" : "Compare"}
+              </button>
+            )}
+            {onSetWatch && !watchPrice && !detailWatchInput && (
+              <button onClick={() => setDetailWatchInput(true)}
+                className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-gray-700 text-gray-400 hover:text-green-400 hover:border-green-500/50 hover:bg-green-500/5">
+                <Bell className="w-4 h-4" />Set Price Watch
+              </button>
+            )}
+            {onSetWatch && !watchPrice && detailWatchInput && (
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-green-500/40 rounded-lg px-3 py-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <input type="number" placeholder="Target price" value={detailWatchVal} onChange={(e) => setDetailWatchVal(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-white outline-none" autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter" && detailWatchVal) { onSetWatch(figure.code, parseFloat(detailWatchVal)); setDetailWatchInput(false); } if (e.key === "Escape") setDetailWatchInput(false); }} />
+                </div>
+                <button onClick={() => { if (detailWatchVal) { onSetWatch(figure.code, parseFloat(detailWatchVal)); setDetailWatchInput(false); } } }
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30 transition">
+                  Set
+                </button>
+              </div>
+            )}
+            {onSetWatch && watchPrice && (
+              <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">Watching at {formatPrice(watchPrice, currency)}</span>
+                  {stats.avg <= watchPrice && <span className="text-xs text-green-300 bg-green-500/20 px-2 py-0.5 rounded-full">Below target!</span>}
+                </div>
+                <button onClick={() => onSetWatch(figure.code, null)} className="text-xs text-gray-500 hover:text-red-400 transition">Remove</button>
+              </div>
+            )}
+          </div>
+          <div className="lg:col-span-2 space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Avg Market", value: formatPrice(stats.avg, currency), color: "text-orange-500" },
+                { label: "New/Sealed", value: formatPrice(stats.avgNew, currency), color: "text-green-400" },
+                { label: "Used/Open", value: formatPrice(stats.avgUsed, currency), color: "text-blue-400" },
+                { label: "ROI", value: `${stats.roi > 0 ? "+" : ""}${stats.roi}%`, color: stats.roi > 0 ? "text-green-400" : "text-red-400" },
+              ].map((kpi) => (
+                <div key={kpi.label} className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>
+                  <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4" style={{ color: "#F27B1A" }} />Price Trend (6 Months)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={stats.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3D" />
+                  <XAxis dataKey="month" stroke="#6B6B80" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#6B6B80" tick={{ fontSize: 11 }} tickFormatter={(v) => formatPrice(v, currency)} />
+                  <Tooltip contentStyle={{ background: "var(--bg-tooltip)", border: "1px solid var(--border-tooltip)", borderRadius: 8, fontSize: 13, color: "var(--text-primary, #f3f4f6)" }} itemStyle={{ color: "var(--text-primary, #f3f4f6)" }} labelStyle={{ color: "#FFFFFF" }} formatter={(v) => [formatPrice(v, currency), "Avg Price"]} />
+                  <Line type="monotone" dataKey="avg" stroke="#F27B1A" strokeWidth={2} dot={{ fill: "#F27B1A", r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4 text-green-400" />Fair Price Guide</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                  <p className="text-xs text-green-400 font-semibold mb-1 flex items-center gap-1"><ShoppingCart className="w-3 h-3" />BUY (Fair Price)</p>
+                  <p className="text-white text-sm">New: <span className="font-bold text-green-400">{formatPrice(stats.fairBuyNew, currency)}</span></p>
+                  <p className="text-white text-sm">Used: <span className="font-bold text-green-400">{formatPrice(stats.fairBuyUsed, currency)}</span></p>
+                </div>
+                <div className="rounded-lg p-3" style={{ background: "rgba(242, 123, 26, 0.1)", border: "1px solid rgba(242, 123, 26, 0.3)" }}>
+                  <p className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: "#F27B1A" }}><Tag className="w-3 h-3" />SELL (List Price)</p>
+                  <p className="text-white text-sm">New: <span className="font-bold" style={{ color: "#F27B1A" }}>{formatPrice(stats.fairSellNew, currency)}</span></p>
+                  <p className="text-white text-sm">Used: <span className="font-bold" style={{ color: "#F27B1A" }}>{formatPrice(stats.fairSellUsed, currency)}</span></p>
+                </div>
+              </div>
+              <FairPriceGauge price={stats.avg} low={stats.low} avg={stats.avg} high={stats.high} label="Market Range" currency={currency} />
+            </div>
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Recent Sales</h3>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {stats.sales.slice(0, 15).map((s, i) => (
+                  <div key={i} className={`flex items-center justify-between text-xs px-3 py-2 rounded-lg ${i % 2 === 0 ? "bg-gray-800/50" : ""}`}>
+                    <span className="text-gray-400 w-20">{s.date}</span>
+                    <Badge color={s.condition === "New/Sealed" ? "#2ecc71" : "#3498db"}>{s.condition}</Badge>
+                    <span className="text-gray-500">{s.type}</span>
+                    <span className="text-gray-500">{s.region}</span>
+                    <span className="text-white font-semibold">{formatPrice(s.price, currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPARE DRAWER ───
+function CompareDrawer({ figures, allStats, onRemove, onClose, currency }) {
+  if (!figures || figures.length === 0) return null;
+  const stats = figures.map(f => allStats[f.id] || calcStats(f));
+  const [expanded, setExpanded] = useState(figures.length === 2);
+
+  useEffect(() => { if (figures.length === 2) setExpanded(true); }, [figures.length]);
+
+  const rows = [
+    { label: "Market Value", fn: (s) => formatPrice(s.avg, currency), color: (s) => "#F27B1A", higherBetter: true },
+    { label: "New/Sealed", fn: (s) => formatPrice(s.avgNew, currency), color: () => "#22C55E", higherBetter: true },
+    { label: "Used/Open", fn: (s) => formatPrice(s.avgUsed, currency), color: () => "#3B82F6", higherBetter: true },
+    { label: "ROI", fn: (s) => (s.roi > 0 ? "+" : "") + s.roi + "%", color: (s) => s.roi > 0 ? "#22C55E" : "#EF4444", higherBetter: true },
+    { label: "Trend", fn: (s) => s.trend.charAt(0).toUpperCase() + s.trend.slice(1) + " (" + (s.trendPct > 0 ? "+" : "") + s.trendPct + "%)", color: (s) => s.trend === "rising" ? "#22C55E" : s.trend === "falling" ? "#EF4444" : "#888" },
+    { label: "Total Sales", fn: (s) => String(s.totalSales), color: () => "#FFF", higherBetter: true },
+    { label: "Low", fn: (s) => formatPrice(s.low, currency), color: () => "#9CA3AF" },
+    { label: "High", fn: (s) => formatPrice(s.high, currency), color: () => "#9CA3AF" },
+    { label: "Fair Buy (New)", fn: (s) => formatPrice(s.fairBuyNew, currency), color: () => "#22C55E", higherBetter: false },
+    { label: "Fair Sell (New)", fn: (s) => formatPrice(s.fairSellNew, currency), color: () => "#F27B1A", higherBetter: true },
+  ];
+
+  const betterIdx = (vals, higherBetter) => {
+    if (figures.length < 2 || higherBetter === undefined) return -1;
+    const nums = vals.map(v => parseFloat(String(v).replace(/[^0-9.-]/g, '')));
+    if (isNaN(nums[0]) || isNaN(nums[1]) || nums[0] === nums[1]) return -1;
+    return higherBetter ? (nums[0] > nums[1] ? 0 : 1) : (nums[0] < nums[1] ? 0 : 1);
+  };
+
+  if (figures.length === 1 && !expanded) {
+    return (
+      <div className="fixed bottom-0 inset-x-0 z-40" style={{ pointerEvents: "none" }}>
+        <div className="max-w-2xl mx-auto px-4 pb-4" style={{ pointerEvents: "auto" }}>
+          <div className="rounded-xl shadow-2xl border border-purple-500/40 overflow-hidden" style={{ background: "rgba(17,24,39,0.97)", backdropFilter: "blur(16px)" }}>
+            <div className="px-4 py-3 flex items-center gap-3">
+              <div className="w-10 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                <FigureImage code={figures[0].code} name={figures[0].name} className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{figures[0].name}</p>
+                <p className="text-xs text-purple-400">Click "Compare" on another figure to compare side-by-side</p>
+              </div>
+              <button onClick={() => setExpanded(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 flex-shrink-0">
+                Expand
+              </button>
+              <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-800 text-gray-500 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-6" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
+      <div className="bg-gray-900 border border-purple-500/30 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-purple-400" />
+            <h3 className="text-base font-bold text-white">Compare Figures</h3>
+            <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">{figures.length}/2</span>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-5 py-4 border-b border-gray-800 flex gap-4">
+          {figures.map((fig, i) => (
+            <div key={fig.id} className="flex-1 flex items-center gap-3 bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
+              <div className="w-14 h-16 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{fig.name}</p>
+                <p className="text-xs text-gray-500">{fig.code}</p>
+              </div>
+              <button onClick={() => onRemove(fig.id)} className="p-1 rounded-full hover:bg-red-500/20 text-gray-600 hover:text-red-400 flex-shrink-0 transition-colors" title="Remove"><X className="w-3.5 h-3.5" /></button>
+            </div>
+          ))}
+          {figures.length < 2 && (
+            <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-700 rounded-xl p-3 text-gray-500 gap-2">
+              <Plus className="w-4 h-4" />
+              <span className="text-sm">Open a figure and click Compare</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-x-auto overflow-y-auto">
+          <table className="w-full" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
+            <thead>
+              <tr className="sticky top-0" style={{ background: "#111827" }}>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 sm:px-5 py-2 sm:py-2.5 border-b border-gray-800 w-1/3">Metric</th>
+                {figures.map((fig) => (
+                  <th key={fig.id} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-2.5 border-b border-gray-800">{fig.code}</th>
+                ))}
+                {figures.length < 2 && <th className="text-center text-xs text-gray-600 px-2 sm:px-4 py-2 sm:py-2.5 border-b border-gray-800">—</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => {
+                const vals = stats.map(s => row.fn(s));
+                const best = betterIdx(vals, row.higherBetter);
+                return (
+                  <tr key={row.label} className={ri % 2 === 0 ? "bg-gray-800/20" : ""}>
+                    <td className="text-xs sm:text-sm text-gray-400 font-medium px-2 sm:px-5 py-2 sm:py-2.5">{row.label}</td>
+                    {figures.map((fig, fi) => (
+                      <td key={fig.id} className="text-center px-2 sm:px-4 py-2 sm:py-2.5">
+                        <span className="text-xs sm:text-sm font-bold" style={{ color: row.color(stats[fi]) }}>{vals[fi]}</span>
+                        {best === fi && <span className="ml-1 sm:ml-1.5 text-green-400 text-xs">★</span>}
+                      </td>
+                    ))}
+                    {figures.length < 2 && <td className="text-center text-gray-700 px-2 sm:px-4 py-2 sm:py-2.5">—</td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COLLECTION MANAGER FUNCTIONS ───
+function getCollectionMap() {
+  return JSON.parse(localStorage.getItem("lm-collection-map") || "{}");
+}
+
+function setCollectionMap(map) {
+  localStorage.setItem("lm-collection-map", JSON.stringify(map));
+}
+
+function toggleCollection(sku, newStatus) {
+  const map = getCollectionMap();
+  const current = map[sku];
+  if (current === newStatus) {
+    delete map[sku];
+  } else {
+    map[sku] = newStatus;
+  }
+  setCollectionMap(map);
+  return map;
+}
+
+// ─── MAIN APP ───
+function LegionsMarket() {
+  const [currentTab, setCurrentTab] = useState("browse");
+  const [showDetail, setShowDetail] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTaxReport, setShowTaxReport] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("lm-theme") || "dark");
+  const [currency, setCurrency] = useState(localStorage.getItem("lm-currency") || "USD");
+  const [region, setRegion] = useState(localStorage.getItem("lm-region") || "Global");
+  const [showConsent, setShowConsent] = useState(!localStorage.getItem("lm-consent-shown"));
+  const [allStats, setAllStats] = useState({});
+  const [collectionMap, setCollectionMapState] = useState({});
+  const [ownedDetails, setOwnedDetails] = useState({});
+  const [preorderDetails, setPreorderDetails] = useState({});
+  const [forSaleDetails, setForSaleDetails] = useState({});
+  const [soldDetails, setSoldDetails] = useState({});
+  const [wishlistTargets, setWishlistTargets] = useState({});
+  const [compareList, setCompareList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredBrowseItems, setFilteredBrowseItems] = useState([]);
+  const [browseSort, setBrowseSort] = useState("name-asc");
+  const [browseLicense, setBrowseLicense] = useState("All");
+  const [browseSeries, setBrowseSeries] = useState("All");
+  const [browsePageSize, setBrowsePageSize] = useState(12);
+  const [browsePage, setBrowsePage] = useState(1);
+
+  // Load data from files on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const ts = Date.now();
+        const [figRes, catRes, imgRes] = await Promise.all([
+          fetch(`./lm-figures.json?t=${ts}`),
+          fetch(`./lm-catalog.json?t=${ts}`),
+          fetch(`./lm-images.json?t=${ts}`)
+        ]);
+        const figures = await figRes.json();
+        const catalog = await catRes.json();
+        const images = await imgRes.json();
+
+        FIGURES_DB = figures;
+        CATALOG = catalog;
+        PRODUCT_IMAGES = images;
+
+        // Pre-calculate stats
+        const statsMap = {};
+        catalog.slice(0, 50).forEach(f => {
+          statsMap[f.sku] = calcStats(f);
+        });
+        setAllStats(statsMap);
+
+        // Load collection data
+        setCollectionMapState(getCollectionMap());
+        setOwnedDetails(JSON.parse(localStorage.getItem("lm-owned-details") || "{}"));
+        setPreorderDetails(JSON.parse(localStorage.getItem("lm-preorder-details") || "{}"));
+        setForSaleDetails(JSON.parse(localStorage.getItem("lm-forsale-details") || "{}"));
+        setSoldDetails(JSON.parse(localStorage.getItem("lm-sold-details") || "{}"));
+        setWishlistTargets(JSON.parse(localStorage.getItem("lm-wishlist-targets") || "{}"));
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      }
+    };
+
+    loadData();
+
+    window.addEventListener("lm-show-privacy", () => setShowPrivacy(true));
+    return () => window.removeEventListener("lm-show-privacy", () => setShowPrivacy(true));
+  }, []);
+
+  // Apply theme
+  useEffect(() => {
+    if (theme === "light") {
+      document.documentElement.classList.add("theme-light");
+    } else {
+      document.documentElement.classList.remove("theme-light");
+    }
+    localStorage.setItem("lm-theme", theme);
+  }, [theme]);
+
+  // Persist currency and region
+  useEffect(() => {
+    localStorage.setItem("lm-currency", currency);
+  }, [currency]);
+
+  useEffect(() => {
+    localStorage.setItem("lm-region", region);
+  }, [region]);
+
+  // Filter browse items
+  useEffect(() => {
+    let items = CATALOG || [];
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      items = items.filter(f => f.name.toLowerCase().includes(q) || f.sku.toLowerCase().includes(q));
+    }
+    if (browseLicense !== "All") {
+      items = items.filter(f => f.license === browseLicense);
+    }
+    if (browseSeries !== "All") {
+      items = items.filter(f => f.series === browseSeries);
+    }
+
+    const sortFns = {
+      "name-asc": (a, b) => a.name.localeCompare(b.name),
+      "name-desc": (a, b) => b.name.localeCompare(a.name),
+      "retail-asc": (a, b) => (a.retail || 0) - (b.retail || 0),
+      "retail-desc": (a, b) => (b.retail || 0) - (a.retail || 0),
+      "newest": (a, b) => CATALOG.indexOf(b) - CATALOG.indexOf(a)
+    };
+
+    if (sortFns[browseSort]) {
+      items = items.sort(sortFns[browseSort]);
+    }
+
+    setFilteredBrowseItems(items);
+    setBrowsePage(1);
+  }, [searchQuery, browseLicense, browseSeries, browseSort]);
+
+  const licenses = ["All", ...new Set(CATALOG.map(c => c.license).filter(Boolean))].sort();
+  const seriesList = ["All", ...new Set(CATALOG.map(c => c.series).filter(Boolean))].sort();
+
+  const paginatedItems = filteredBrowseItems.slice((browsePage - 1) * browsePageSize, browsePage * browsePageSize);
+  const totalPages = Math.ceil(filteredBrowseItems.length / browsePageSize);
+
+  const handleToggleCollection = (sku, type) => {
+    const newMap = toggleCollection(sku, type);
+    setCollectionMapState(newMap);
+  };
+
+  const handleSetWatchPrice = (sku, price) => {
+    const targets = { ...wishlistTargets };
+    if (price !== null) {
+      targets[sku] = price;
+    } else {
+      delete targets[sku];
+    }
+    setWishlistTargets(targets);
+    localStorage.setItem("lm-wishlist-targets", JSON.stringify(targets));
+  };
+
+  const handleCompare = (figure) => {
+    setCompareList(prev => {
+      if (prev.find(f => f.id === figure.id)) {
+        return prev.filter(f => f.id !== figure.id);
+      }
+      if (prev.length >= 2) {
+        return [...prev.slice(1), figure];
+      }
+      return [...prev, figure];
+    });
+  };
+
+  const handleRemoveCompare = (figId) => {
+    setCompareList(prev => prev.filter(f => f.id !== figId));
+  };
+
+  const handleExportTaxReport = (dateFrom, dateTo) => {
+    exportTaxReport(collectionMap, ownedDetails, forSaleDetails, preorderDetails, soldDetails, currency, dateFrom, dateTo);
+  };
+
+  const statsForFigure = (sku) => {
+    if (allStats[sku]) return allStats[sku];
+    const fig = CATALOG.find(c => c.sku === sku);
+    if (!fig) return null;
+    const s = calcStats(fig);
+    setAllStats(prev => ({ ...prev, [sku]: s }));
+    return s;
+  };
+
+  // ─── BROWSE TAB ───
+  const renderBrowse = () => (
+    <div className="w-full space-y-4">
+      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 sticky top-0 z-20">
+        <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 mb-3">
+          <Search className="w-5 h-5 text-gray-500" />
+          <input type="text" placeholder="Search by name or code..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-white outline-none" />
+          {searchQuery && <button onClick={() => setSearchQuery("")} className="text-gray-500 hover:text-white"><X className="w-4 h-4" /></button>}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">License</label>
+            <select value={browseLicense} onChange={(e) => setBrowseLicense(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
+              {licenses.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Series</label>
+            <select value={browseSeries} onChange={(e) => setBrowseSeries(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
+              {seriesList.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Sort</label>
+            <select value={browseSort} onChange={(e) => setBrowseSort(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="retail-asc">Retail (Low)</option>
+              <option value="retail-desc">Retail (High)</option>
+              <option value="newest">Newest</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Per Page</label>
+            <select value={browsePageSize} onChange={(e) => setBrowsePageSize(Number(e.target.value))}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg text-xs text-white px-2 py-1.5">
+              <option value={6}>6</option>
+              <option value={12}>12</option>
+              <option value={24}>24</option>
+              <option value={48}>48</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+        {paginatedItems.map(fig => {
+          const stats = statsForFigure(fig.sku);
+          const isWishlisted = collectionMap[fig.sku] === "wishlist";
+          return (
+            <div key={fig.sku} className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden hover:border-orange-500/50 transition-all cursor-pointer group" onClick={() => setShowDetail(fig)}>
+              <div className="aspect-square bg-gray-900 overflow-hidden">
+                <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              </div>
+              <div className="p-3 space-y-2">
+                <h3 className="font-semibold text-white truncate text-sm">{fig.name}</h3>
+                <p className="text-xs text-gray-400">{fig.sku}</p>
+                {stats && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Market:</span>
+                    <span className="font-bold text-orange-400">{formatPrice(stats.avg, currency)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+                  <span className="text-xs text-gray-500">Retail: {formatPrice(fig.retail, currency)}</span>
+                  <button onClick={(e) => { e.stopPropagation(); handleToggleCollection(fig.sku, "wishlist"); }}
+                    className="p-1.5 rounded-lg" style={{ background: isWishlisted ? "rgba(242,123,26,0.2)" : "rgba(99,102,241,0.1)", color: isWishlisted ? "#F27B1A" : "#6366f1" }}>
+                    <Star className="w-4 h-4" fill={isWishlisted ? "currentColor" : "none"} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button onClick={() => setBrowsePage(p => Math.max(1, p - 1))} disabled={browsePage === 1}
+            className="px-3 py-2 rounded-lg border border-gray-700 text-sm disabled:opacity-50">Previous</button>
+          <span className="text-sm text-gray-400">{browsePage} / {totalPages}</span>
+          <button onClick={() => setBrowsePage(p => Math.min(totalPages, p + 1))} disabled={browsePage === totalPages}
+            className="px-3 py-2 rounded-lg border border-gray-700 text-sm disabled:opacity-50">Next</button>
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── WISHLIST TAB ───
+  const wishlistItems = CATALOG.filter(c => collectionMap[c.sku] === "wishlist");
+  const renderWishlist = () => (
+    <div className="w-full space-y-4">
+      {wishlistItems.length === 0 ? (
+        <div className="text-center py-12">
+          <Star className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+          <p className="text-gray-400">No wishlisted figures yet. Browse and click the star to add to your wishlist.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {wishlistItems.map(fig => {
+            const stats = statsForFigure(fig.sku);
+            const targetPrice = wishlistTargets[fig.sku];
+            const isPriceBelow = stats && targetPrice && stats.avg <= targetPrice;
+            return (
+              <div key={fig.sku} className={`bg-gray-800/50 border rounded-xl overflow-hidden p-4 space-y-3 cursor-pointer ${isPriceBelow ? "border-green-500/50" : "border-gray-700"}`} onClick={() => setShowDetail(fig)}>
+                <div className="aspect-square bg-gray-900 rounded-lg overflow-hidden">
+                  <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">{fig.name}</h3>
+                  <p className="text-xs text-gray-400">{fig.sku}</p>
+                </div>
+                {stats && (
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Current Market:</span>
+                      <span className="font-bold text-orange-400">{formatPrice(stats.avg, currency)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Retail:</span>
+                      <span className="text-white">{formatPrice(fig.retail, currency)}</span>
+                    </div>
+                    {targetPrice && (
+                      <div className={`flex justify-between p-2 rounded-lg ${isPriceBelow ? "bg-green-500/10 border border-green-500/30" : "bg-gray-900 border border-gray-700"}`}>
+                        <span className={isPriceBelow ? "text-green-400" : "text-gray-400"}>Target Price:</span>
+                        <span className={`font-bold ${isPriceBelow ? "text-green-400" : "text-white"}`}>{formatPrice(targetPrice, currency)} {isPriceBelow && "✓"}</span>
+                      </div>
+                    )}
+                    {!targetPrice && (
+                      <button onClick={(e) => { e.stopPropagation(); handleSetWatchPrice(fig.sku, stats.fairBuyNew); }}
+                        className="w-full py-1.5 rounded-lg text-xs bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30">
+                        Set Target Price
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── COLLECTION TAB ───
+  const collectionItems = CATALOG.filter(c => collectionMap[c.sku] && collectionMap[c.sku] !== "wishlist");
+  const renderCollection = () => (
+    <div className="w-full space-y-4">
+      {collectionItems.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+          <p className="text-gray-400">No figures in your collection yet. Browse and add to track owned, pre-orders, and sales.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {collectionItems.map(fig => {
+            const status = collectionMap[fig.sku];
+            const stats = statsForFigure(fig.sku);
+            const statusColor = { owned: "#22c55e", preorder: "#3b82f6", "for-sale": "#f97316", sold: "#8b5cf6" };
+            return (
+              <div key={fig.sku} className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden p-4 space-y-3 cursor-pointer hover:border-orange-500/50 transition-all" onClick={() => setShowDetail(fig)}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white text-sm">{fig.name}</h3>
+                    <p className="text-xs text-gray-400">{fig.sku}</p>
+                  </div>
+                  <Badge color={statusColor[status] || "#888"}>{status === "for-sale" ? "For Sale" : status === "preorder" ? "Pre-Order" : "Owned"}</Badge>
+                </div>
+                <div className="aspect-square bg-gray-900 rounded-lg overflow-hidden">
+                  <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+                </div>
+                {stats && (
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between text-gray-400">
+                      <span>Market Value:</span>
+                      <span className="text-orange-400 font-bold">{formatPrice(stats.avg, currency)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>Retail:</span>
+                      <span className="text-white">{formatPrice(fig.retail, currency)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── CATALOG TAB ───
+  const renderCatalog = () => (
+    <div className="w-full">
+      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-4 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Code</th>
+              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Name</th>
+              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Series</th>
+              <th className="text-right py-2 px-3 text-gray-400 font-semibold">Retail</th>
+              <th className="text-right py-2 px-3 text-gray-400 font-semibold">Market Avg</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CATALOG.slice(0, 50).map(fig => {
+              const stats = statsForFigure(fig.sku);
+              return (
+                <tr key={fig.sku} className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer" onClick={() => setShowDetail(fig)}>
+                  <td className="py-2 px-3 text-white font-mono text-xs">{fig.code}</td>
+                  <td className="py-2 px-3 text-white">{fig.name}</td>
+                  <td className="py-2 px-3 text-gray-400 text-xs">{fig.series}</td>
+                  <td className="py-2 px-3 text-right text-gray-400">{formatPrice(fig.retail, currency)}</td>
+                  <td className="py-2 px-3 text-right font-bold text-orange-400">{stats ? formatPrice(stats.avg, currency) : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-center text-xs text-gray-500">Showing first 50 figures. Full catalog view coming soon.</p>
+    </div>
+  );
+
+  const tabContents = {
+    browse: renderBrowse(),
+    wishlist: renderWishlist(),
+    collection: renderCollection(),
+    catalog: renderCatalog()
+  };
+
+  return (
+    <div style={{ background: "var(--bg-main)" }} className="min-h-screen text-white">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-gray-800/50" style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold" style={{ background: "linear-gradient(135deg, #F27B1A, #D46A10)" }}>
+              L
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Legions Market</h1>
+              <p className="text-xs text-gray-400">Collect Smarter</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none">
+              {Object.keys(CURRENCIES).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <select value={region} onChange={(e) => setRegion(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none">
+              {Object.keys(REGIONS).map(r => <option key={r} value={r}>{REGIONS[r].flag} {REGIONS[r].label}</option>)}
+            </select>
+
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors">
+              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <button onClick={() => setShowFeedback(true)}
+              className="text-sm px-3 py-2 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors flex items-center gap-1">
+              <Info className="w-4 h-4" />
+              Feedback
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-t border-gray-800/50 max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto">
+          {[
+            { id: "browse", label: "Browse", icon: Search },
+            { id: "wishlist", label: "Wishlist", icon: Star },
+            { id: "collection", label: "Collection", icon: Package },
+            { id: "catalog", label: "Catalog", icon: BookOpen }
+          ].map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button key={tab.id} onClick={() => setCurrentTab(tab.id)}
+                className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-all ${currentTab === tab.id ? "border-orange-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}>
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+          <button onClick={() => setShowTaxReport(true)}
+            className="ml-auto px-3 py-3 text-sm flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
+            <DollarSign className="w-4 h-4" />
+            Export
+          </button>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {tabContents[currentTab]}
+      </main>
+
+      {/* Detail Modal */}
+      {showDetail && (
+        <DetailModal
+          figure={showDetail}
+          stats={statsForFigure(showDetail.sku) || calcStats(showDetail)}
+          inCollection={collectionMap[showDetail.sku] === "wishlist"}
+          onToggleCollection={() => handleToggleCollection(showDetail.sku, "wishlist")}
+          onClose={() => setShowDetail(null)}
+          currency={currency}
+          onCompare={handleCompare}
+          isInCompare={compareList.some(f => f.sku === showDetail.sku)}
+          watchPrice={wishlistTargets[showDetail.sku]}
+          onSetWatch={handleSetWatchPrice}
+          region={region}
+        />
+      )}
+
+      {/* Compare Drawer */}
+      {compareList.length > 0 && (
+        <CompareDrawer
+          figures={compareList}
+          allStats={allStats}
+          onRemove={handleRemoveCompare}
+          onClose={() => setCompareList([])}
+          currency={currency}
+        />
+      )}
+
+      {/* Modals */}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
+      {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+      {showTaxReport && <TaxReportModal onClose={() => setShowTaxReport(false)} onExport={handleExportTaxReport} />}
+      {showConsent && <ConsentBanner onAccept={() => { setShowConsent(false); localStorage.setItem("lm-consent-shown", "1"); }} onDecline={() => { setShowConsent(false); localStorage.setItem("lm-consent-shown", "1"); }} />}
+    </div>
+  );
+}
+
+// ─── RENDER APP ───
+const root = window.ReactDOM.createRoot(document.getElementById('root'));
+root.render(<LegionsMarket />);
+    </script>
+</body>
+</html>

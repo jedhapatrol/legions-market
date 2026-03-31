@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    { "source": "/api/feedback", "destination": "/api/feedback" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/(.*).json",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=60" }
+      ]
+    }
+  ]
+}

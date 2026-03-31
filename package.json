@@ -1,0 +1,9 @@
+{
+  "name": "legions-market",
+  "version": "1.0.0",
+  "description": "Price tracker and collection manager for Mythic Legions figures by Four Horsemen Studios",
+  "private": true,
+  "scripts": {
+    "start": "npx serve ."
+  }
+}
