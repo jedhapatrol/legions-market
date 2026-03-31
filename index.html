@@ -737,6 +737,7 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
   const [detailWatchInput, setDetailWatchInput] = useState(false);
   const [detailWatchVal, setDetailWatchVal] = useState(watchPrice || "");
   if (!figure) return null;
+  const figCode = figure.code || figure.sku || "";
   const seriesInfo = SERIES_INFO[figure.series] || { name: figure.series, color: "#888" };
 
   return (
@@ -752,10 +753,10 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
         <div className="p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
           <div className="lg:col-span-1 space-y-4">
             <div className="aspect-[3/4] bg-gray-800 rounded-xl overflow-hidden">
-              <FigureImage code={figure.code} name={figure.name} className="w-full h-full object-cover" />
+              <FigureImage code={figCode} name={figure.name} className="w-full h-full object-cover" />
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Item Code</span><span className="text-white font-semibold">{figure.code}</span></div>
+              <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Item Code</span><span className="text-white font-semibold">{figCode}</span></div>
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Series</span><Badge color={seriesInfo.color}>{figure.series}</Badge></div>
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">License</span><span className="text-white">{figure.license}</span></div>
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Retail</span><span className="text-white">{formatPrice(figure.retail, currency)}</span></div>
@@ -765,11 +766,11 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
               <Star className="w-4 h-4" fill={inCollection ? "currentColor" : "none"} />
               {inCollection ? "On Your Wishlist" : "Add to Wishlist"}
             </button>
-            <a href={buildEbaySearchUrl(figure.name, figure.code, region)} target="_blank" rel="noopener noreferrer"
+            <a href={buildEbaySearchUrl(figure.name, figCode, region)} target="_blank" rel="noopener noreferrer"
               className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500" style={{ background: "#1C1C2A" }}>
               <ExternalLink className="w-4 h-4" />Search on eBay
             </a>
-            <a href={buildStoreLink(figure.code)} target="_blank" rel="noopener noreferrer"
+            <a href={buildStoreLink(figCode)} target="_blank" rel="noopener noreferrer"
               className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-orange-500/40 text-orange-400 hover:text-orange-300 hover:border-orange-500/70 hover:bg-orange-500/10" style={{ background: "rgba(242,123,26,0.08)" }}>
               <ShoppingCart className="w-4 h-4" />Four Horsemen Store
             </a>
@@ -791,9 +792,9 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
                   <span className="text-sm text-gray-500">$</span>
                   <input type="number" placeholder="Target price" value={detailWatchVal} onChange={(e) => setDetailWatchVal(e.target.value)}
                     className="flex-1 bg-transparent text-sm text-white outline-none" autoFocus
-                    onKeyDown={(e) => { if (e.key === "Enter" && detailWatchVal) { onSetWatch(figure.code, parseFloat(detailWatchVal)); setDetailWatchInput(false); } if (e.key === "Escape") setDetailWatchInput(false); }} />
+                    onKeyDown={(e) => { if (e.key === "Enter" && detailWatchVal) { onSetWatch(figCode, parseFloat(detailWatchVal)); setDetailWatchInput(false); } if (e.key === "Escape") setDetailWatchInput(false); }} />
                 </div>
-                <button onClick={() => { if (detailWatchVal) { onSetWatch(figure.code, parseFloat(detailWatchVal)); setDetailWatchInput(false); } } }
+                <button onClick={() => { if (detailWatchVal) { onSetWatch(figCode, parseFloat(detailWatchVal)); setDetailWatchInput(false); } } }
                   className="px-4 py-2 rounded-lg text-sm font-semibold bg-green-500/20 border border-green-500/40 text-green-400 hover:bg-green-500/30 transition">
                   Set
                 </button>
@@ -806,7 +807,7 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
                   <span className="text-sm text-green-400 font-semibold">Watching at {formatPrice(watchPrice, currency)}</span>
                   {stats.avg <= watchPrice && <span className="text-xs text-green-300 bg-green-500/20 px-2 py-0.5 rounded-full">Below target!</span>}
                 </div>
-                <button onClick={() => onSetWatch(figure.code, null)} className="text-xs text-gray-500 hover:text-red-400 transition">Remove</button>
+                <button onClick={() => onSetWatch(figCode, null)} className="text-xs text-gray-500 hover:text-red-400 transition">Remove</button>
               </div>
             )}
             {/* Community Insights */}
@@ -919,7 +920,7 @@ function CompareDrawer({ figures, allStats, onRemove, onClose, currency }) {
           <div className="rounded-xl shadow-2xl border border-purple-500/40 overflow-hidden" style={{ background: "rgba(17,24,39,0.97)", backdropFilter: "blur(16px)" }}>
             <div className="px-4 py-3 flex items-center gap-3">
               <div className="w-10 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                <FigureImage code={figures[0].code} name={figures[0].name} className="w-full h-full object-cover" />
+                <FigureImage code={figures[0].code || figures[0].sku} name={figures[0].name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white truncate">{figures[0].name}</p>
@@ -952,11 +953,11 @@ function CompareDrawer({ figures, allStats, onRemove, onClose, currency }) {
           {figures.map((fig, i) => (
             <div key={fig.id} className="flex-1 flex items-center gap-3 bg-gray-800/50 rounded-xl p-3 border border-gray-700/50">
               <div className="w-14 h-16 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+                <FigureImage code={fig.code || fig.sku} name={fig.name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white truncate">{fig.name}</p>
-                <p className="text-xs text-gray-500">{fig.code}</p>
+                <p className="text-xs text-gray-500">{fig.code || fig.sku}</p>
               </div>
               <button onClick={() => onRemove(fig.id)} className="p-1 rounded-full hover:bg-red-500/20 text-gray-600 hover:text-red-400 flex-shrink-0 transition-colors" title="Remove"><X className="w-3.5 h-3.5" /></button>
             </div>
@@ -975,7 +976,7 @@ function CompareDrawer({ figures, allStats, onRemove, onClose, currency }) {
               <tr className="sticky top-0" style={{ background: "#111827" }}>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 sm:px-5 py-2 sm:py-2.5 border-b border-gray-800 w-1/3">Metric</th>
                 {figures.map((fig) => (
-                  <th key={fig.id} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-2.5 border-b border-gray-800">{fig.code}</th>
+                  <th key={fig.id || fig.sku} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 sm:px-4 py-2 sm:py-2.5 border-b border-gray-800">{fig.code || fig.sku}</th>
                 ))}
                 {figures.length < 2 && <th className="text-center text-xs text-gray-600 px-2 sm:px-4 py-2 sm:py-2.5 border-b border-gray-800">—</th>}
               </tr>
@@ -1081,6 +1082,7 @@ function LegionsMarket() {
   const [browseSeries, setBrowseSeries] = useState("All");
   const [browsePageSize, setBrowsePageSize] = useState(12);
   const [browsePage, setBrowsePage] = useState(1);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Load data from files on mount
   useEffect(() => {
@@ -1117,6 +1119,7 @@ function LegionsMarket() {
 
         // Load community aggregate data from Firebase
         fbGetAggregateData().then(data => setCommunityData(data || {})).catch(() => {});
+        setDataLoaded(true);
       } catch (err) {
         console.error("Failed to load data:", err);
       }
@@ -1175,7 +1178,7 @@ function LegionsMarket() {
 
     setFilteredBrowseItems(items);
     setBrowsePage(1);
-  }, [searchQuery, browseLicense, browseSeries, browseSort]);
+  }, [searchQuery, browseLicense, browseSeries, browseSort, dataLoaded]);
 
   const licenses = ["All", ...new Set(CATALOG.map(c => c.license).filter(Boolean))].sort();
   const seriesList = ["All", ...new Set(CATALOG.map(c => c.series).filter(Boolean))].sort();
@@ -1285,7 +1288,7 @@ function LegionsMarket() {
           return (
             <div key={fig.sku} className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden hover:border-orange-500/50 transition-all cursor-pointer group" onClick={() => setShowDetail(fig)}>
               <div className="aspect-square bg-gray-900 overflow-hidden">
-                <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                <FigureImage code={fig.code || fig.sku} name={fig.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
               </div>
               <div className="p-3 space-y-2">
                 <h3 className="font-semibold text-white truncate text-sm">{fig.name}</h3>
@@ -1339,7 +1342,7 @@ function LegionsMarket() {
             return (
               <div key={fig.sku} className={`bg-gray-800/50 border rounded-xl overflow-hidden p-4 space-y-3 cursor-pointer ${isPriceBelow ? "border-green-500/50" : "border-gray-700"}`} onClick={() => setShowDetail(fig)}>
                 <div className="aspect-square bg-gray-900 rounded-lg overflow-hidden">
-                  <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+                  <FigureImage code={fig.code || fig.sku} name={fig.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white text-sm">{fig.name}</h3>
@@ -1402,7 +1405,7 @@ function LegionsMarket() {
                   <Badge color={statusColor[status] || "#888"}>{status === "for-sale" ? "For Sale" : status === "preorder" ? "Pre-Order" : "Owned"}</Badge>
                 </div>
                 <div className="aspect-square bg-gray-900 rounded-lg overflow-hidden">
-                  <FigureImage code={fig.code} name={fig.name} className="w-full h-full object-cover" />
+                  <FigureImage code={fig.code || fig.sku} name={fig.name} className="w-full h-full object-cover" />
                 </div>
                 {stats && (
                   <div className="text-xs space-y-1">
@@ -1443,7 +1446,7 @@ function LegionsMarket() {
               const stats = statsForFigure(fig.sku);
               return (
                 <tr key={fig.sku} className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer" onClick={() => setShowDetail(fig)}>
-                  <td className="py-2 px-3 text-white font-mono text-xs">{fig.code}</td>
+                  <td className="py-2 px-3 text-white font-mono text-xs">{fig.code || fig.sku}</td>
                   <td className="py-2 px-3 text-white">{fig.name}</td>
                   <td className="py-2 px-3 text-gray-400 text-xs">{fig.series}</td>
                   <td className="py-2 px-3 text-right text-gray-400">{formatPrice(fig.retail, currency)}</td>
