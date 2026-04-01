@@ -1701,37 +1701,276 @@ function LegionsMarket() {
   );
 
   // ─── CATALOG TAB ───
-  const renderCatalog = () => (
-    <div className="w-full">
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-4 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-700">
-              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Code</th>
-              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Name</th>
-              <th className="text-left py-2 px-3 text-gray-400 font-semibold">Series</th>
-              <th className="text-right py-2 px-3 text-gray-400 font-semibold">Retail</th>
-              <th className="text-right py-2 px-3 text-gray-400 font-semibold">Market Avg</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CATALOG.map(fig => {
-              const stats = statsForFigure(fig.sku);
-              return (
-                <tr key={fig.sku} className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer" onClick={() => setShowDetail(fig)}>
-                  <td className="py-2 px-3 text-white font-mono text-xs">{fig.code || fig.sku}</td>
-                  <td className="py-2 px-3 text-white">{fig.name}</td>
-                  <td className="py-2 px-3 text-gray-400 text-xs">{fig.series}</td>
-                  <td className="py-2 px-3 text-right text-gray-400">{formatPrice(fig.retail, currency)}</td>
-                  <td className="py-2 px-3 text-right font-bold text-orange-400">{stats ? formatPrice(stats.avg, currency) : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+  // Catalog state
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogLicense, setCatalogLicense] = useState("All");
+  const [catalogAvailability, setCatalogAvailability] = useState("All");
+  const [catalogStatus, setCatalogStatus] = useState("All");
+  const [catalogSort, setCatalogSort] = useState("name-asc");
+  const [catPerPage, setCatPerPage] = useState(60);
+  const [catPage, setCatPage] = useState(1);
+
+  const catalogLicenses = useMemo(() => ["All", ...[...new Set(CATALOG.map(c => c.license).filter(Boolean))].sort()], [dataLoaded]);
+  const catalogAvails = useMemo(() => ["All", ...[...new Set(CATALOG.map(c => c.availability).filter(Boolean))].sort()], [dataLoaded]);
+
+  const AVAILABILITY_COLORS = { Available: "#22C55E", "Pre-Order": "#0088CC", Waitlist: "#E8A020", "Sold Out": "#EF4444", "Coming Soon": "#A855F7" };
+  const STATUS_COLORS_CAT = { owned: "#22C55E", preorder: "#0088CC", wishlist: "#E8A020" };
+  const STATUS_LABELS_CAT = { owned: "Owned", preorder: "Pre-Ordered", wishlist: "Wishlist" };
+
+  const sortedCatalog = useMemo(() => {
+    let items = [...CATALOG];
+    const q = catalogSearch.toLowerCase();
+    if (q) {
+      items = items.filter(item => {
+        const nameMatch = item.name.toLowerCase().includes(q);
+        const skuMatch = item.sku.toLowerCase().includes(q);
+        return nameMatch || skuMatch;
+      });
+    }
+    if (catalogLicense !== "All") items = items.filter(item => item.license === catalogLicense);
+    if (catalogAvailability !== "All") items = items.filter(item => item.availability === catalogAvailability);
+    if (catalogStatus !== "All") {
+      if (catalogStatus === "none") items = items.filter(item => !collectionMap[item.sku]);
+      else items = items.filter(item => collectionMap[item.sku] === catalogStatus);
+    }
+    const sortFns = {
+      "name-asc": (a, b) => a.name.localeCompare(b.name),
+      "name-desc": (a, b) => b.name.localeCompare(a.name),
+      "retail-desc": (a, b) => (b.retail || 0) - (a.retail || 0),
+      "retail-asc": (a, b) => (a.retail || 0) - (b.retail || 0),
+      "sku-asc": (a, b) => a.sku.localeCompare(b.sku),
+      "newest": (a, b) => CATALOG.indexOf(b) - CATALOG.indexOf(a),
+      "oldest": (a, b) => CATALOG.indexOf(a) - CATALOG.indexOf(b),
+    };
+    return items.sort(sortFns[catalogSort] || sortFns["name-asc"]);
+  }, [catalogSearch, catalogLicense, catalogAvailability, catalogStatus, catalogSort, dataLoaded, collectionMap]);
+
+  useEffect(() => { setCatPage(1); }, [catalogSearch, catalogLicense, catalogAvailability, catalogStatus, catalogSort]);
+
+  const catalogKpis = useMemo(() => {
+    const owned = Object.values(collectionMap).filter(s => s === "owned").length;
+    const preorder = Object.values(collectionMap).filter(s => s === "preorder").length;
+    const wishlist = Object.values(collectionMap).filter(s => s === "wishlist").length;
+    const ownedValue = CATALOG.filter(c => collectionMap[c.sku] === "owned").reduce((sum, c) => {
+      const s = allStats[c.sku];
+      return sum + (s ? s.avg : (c.retail || 0));
+    }, 0);
+    const preorderValue = CATALOG.filter(c => collectionMap[c.sku] === "preorder").reduce((sum, c) => {
+      const s = allStats[c.sku];
+      return sum + (s ? s.avg : (c.retail || 0));
+    }, 0);
+    return { owned, preorder, wishlist, ownedValue, preorderValue };
+  }, [collectionMap, allStats, dataLoaded]);
+
+  const preorderItems = useMemo(() => {
+    return CATALOG.filter(c => collectionMap[c.sku] === "preorder")
+      .sort((a, b) => (a.expectedShip || "zzz").localeCompare(b.expectedShip || "zzz"));
+  }, [collectionMap, dataLoaded]);
+
+  const renderCatalog = () => {
+    const catTotalPages = Math.ceil(sortedCatalog.length / catPerPage);
+    const catPaginated = sortedCatalog.slice((catPage - 1) * catPerPage, catPage * catPerPage);
+    return (
+    <div className="space-y-6">
+      {/* KPI Stats Bar */}
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-3">
+        {[
+          { label: "Total SKUs", value: CATALOG.length, color: "text-white" },
+          { label: "Owned", value: catalogKpis.owned, color: "text-green-400" },
+          { label: "Pre-Ordered", value: catalogKpis.preorder, color: "text-blue-400" },
+          { label: "Wishlist", value: catalogKpis.wishlist, color: "text-orange-500" },
+          { label: "Market Value", value: formatPrice(catalogKpis.ownedValue + catalogKpis.preorderValue, currency), color: "text-orange-500" },
+        ].map((kpi) => (
+          <div key={kpi.label} className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-2 sm:p-3">
+            <p className="text-xs text-gray-500 truncate">{kpi.label}</p>
+            <p className={`text-lg sm:text-xl font-bold ${kpi.color}`}>{kpi.value}</p>
+          </div>
+        ))}
       </div>
+
+      {/* Search & Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input type="text" value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)}
+            placeholder="Search catalog by name or SKU..."
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-800/50 border border-gray-700/50 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1"
+            style={{ "--tw-ring-color": "rgba(242, 123, 26, 0.2)" }}
+            onFocus={(e) => e.target.style.borderColor = "rgba(242, 123, 26, 0.5)"}
+            onBlur={(e) => e.target.style.borderColor = "rgba(107, 107, 128, 0.5)"} />
+        </div>
+        <select value={catalogLicense} onChange={(e) => setCatalogLicense(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-xl text-sm text-white px-3 py-2.5">
+          {catalogLicenses.map((l) => <option key={l}>{l}</option>)}
+        </select>
+        <select value={catalogAvailability} onChange={(e) => setCatalogAvailability(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-xl text-sm text-white px-3 py-2.5">
+          {catalogAvails.map((a) => <option key={a}>{a}</option>)}
+        </select>
+        <select value={catalogStatus} onChange={(e) => setCatalogStatus(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-xl text-sm text-white px-3 py-2.5">
+          <option value="All">All Status</option>
+          <option value="owned">Owned</option>
+          <option value="preorder">Pre-Ordered</option>
+          <option value="wishlist">Wishlist</option>
+          <option value="none">Not in Collection</option>
+        </select>
+        <select value={catalogSort} onChange={(e) => setCatalogSort(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded-xl text-sm text-white px-3 py-2.5">
+          <option value="name-asc">Name A→Z</option>
+          <option value="name-desc">Name Z→A</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="retail-desc">Retail ↓</option>
+          <option value="retail-asc">Retail ↑</option>
+          <option value="sku-asc">SKU</option>
+        </select>
+      </div>
+
+      {/* Pre-Order Tracker */}
+      {preorderItems.length > 0 && (
+        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-blue-400 flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Pre-Order Tracker ({preorderItems.length} figures)</h3>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {preorderItems.map((po) => (
+              <div key={po.sku} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Badge color="#0088CC">{po.sku}</Badge>
+                  <span className="text-white truncate">{po.name}</span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {po.expectedShip && <span className="text-blue-400">{po.expectedShip}</span>}
+                  <span className="text-white font-semibold">{formatPrice(po.retail, currency)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Count & Per Page */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-500">{sortedCatalog.length} figure{sortedCatalog.length !== 1 ? "s" : ""}</p>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500">Show</label>
+          <select value={catPerPage} onChange={(e) => { setCatPerPage(parseInt(e.target.value)); setCatPage(1); }}
+            className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-white px-2 py-1 focus:outline-none focus:border-orange-500/50">
+            {[20, 40, 60, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}
+            <option value={9999}>All</option>
+          </select>
+          <span className="text-xs text-gray-500">per page</span>
+        </div>
+      </div>
+
+      {/* Card Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+        {catPaginated.map(item => {
+          const status = collectionMap[item.sku] || null;
+          const statusColor = status ? STATUS_COLORS_CAT[status] : null;
+          return (
+            <div key={item.sku} className="group bg-gradient-to-b from-gray-800/80 to-gray-900/90 border border-gray-700/50 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(242, 123, 26, 0.5)"} onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(107, 107, 128, 0.5)"}>
+              <div className="relative cursor-pointer" onClick={() => setShowDetail(item)}>
+                <div className="aspect-[3/4] bg-gray-900 flex items-center justify-center overflow-hidden">
+                  <FigureImage code={item.sku} name={item.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="absolute top-2 left-2">
+                  <Badge color={SERIES_INFO[item.series]?.color || "#888"}>{item.sku}</Badge>
+                </div>
+                {status && (
+                  <div className="absolute top-2 right-2">
+                    <Badge color={statusColor}>{STATUS_LABELS_CAT[status]}</Badge>
+                  </div>
+                )}
+                {item.availability && (
+                  <div className="absolute bottom-2 right-2">
+                    <Badge color={AVAILABILITY_COLORS[item.availability] || "#888"}>{item.availability}</Badge>
+                  </div>
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="text-sm font-bold text-white truncate cursor-pointer" onClick={() => setShowDetail(item)}>{item.name}</h3>
+                <div className="flex items-center gap-2 mt-1 mb-2">
+                  <Badge color={SERIES_INFO[item.series]?.color || "#888"}>{item.series || item.license}</Badge>
+                  {item.expectedShip && <span className="text-xs text-gray-500">Ships: {item.expectedShip}</span>}
+                </div>
+                <div className="flex items-end justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Retail</p>
+                    <p className="text-lg font-bold" style={{ color: "#F27B1A" }}>{formatPrice(item.retail, currency)}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  {["owned", "preorder", "wishlist"].map((s) => (
+                    <button key={s} onClick={() => {
+                      handleToggleCollection(item.sku, s);
+                    }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${collectionMap[item.sku] === s ? "text-white" : "bg-gray-800 text-gray-500 hover:text-white border border-gray-700"}`}
+                      style={collectionMap[item.sku] === s ? { background: STATUS_COLORS_CAT[s] } : {}}>
+                      {STATUS_LABELS_CAT[s]}
+                    </button>
+                  ))}
+                </div>
+                <a href={buildEbaySearchUrl(item.name, item.sku, region)} target="_blank" rel="noopener noreferrer"
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-gray-800 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500" onClick={(e) => e.stopPropagation()}>
+                  <ExternalLink className="w-3 h-3" />View on eBay
+                </a>
+                {item.storeUrl && (
+                  <a href={item.storeUrl} target="_blank" rel="noopener noreferrer"
+                    className="mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-gray-800 text-gray-400 hover:text-orange-400 border border-gray-700 hover:border-orange-500/50" onClick={(e) => e.stopPropagation()}>
+                    <ShoppingCart className="w-3 h-3" />Four Horsemen Store
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {sortedCatalog.length === 0 && (
+        <div className="text-center py-20">
+          <Search className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">No figures match your filters</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {catTotalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6 pb-4">
+          <button onClick={() => { setCatPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={catPage === 1}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            Prev
+          </button>
+          {(() => {
+            const pages = [];
+            const range = 2;
+            for (let i = 1; i <= catTotalPages; i++) {
+              if (i === 1 || i === catTotalPages || (i >= catPage - range && i <= catPage + range)) {
+                pages.push(i);
+              } else if (pages[pages.length - 1] !== '...') {
+                pages.push('...');
+              }
+            }
+            return pages.map((p, idx) => p === '...' ? (
+              <span key={"dots-"+idx} className="text-gray-500 text-sm px-1">...</span>
+            ) : (
+              <button key={p} onClick={() => { setCatPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${catPage === p ? '' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                style={catPage === p ? { background: "#F27B1A", color: "#0D0D14" } : {}}>
+                {p}
+              </button>
+            ));
+          })()}
+          <button onClick={() => { setCatPage(p => Math.min(catTotalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            disabled={catPage === catTotalPages}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            Next
+          </button>
+        </div>
+      )}
     </div>
-  );
+    );
+  };
 
 
   return (
