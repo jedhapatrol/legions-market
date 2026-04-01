@@ -779,19 +779,12 @@ function DetailModal({ figure, stats, inCollection, collectionStatus, onToggleCo
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">License</span><span className="text-white">{figure.license}</span></div>
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Retail</span><span className="text-white">{formatPrice(figure.retail, currency)}</span></div>
             </div>
-            <div className="flex flex-col gap-2">
-              {[
-                { key: "owned", label: "Add to Owned", activeLabel: "In Collection — Owned", color: "#22C55E", icon: <CheckCircle className="w-4 h-4" /> },
-                { key: "preorder", label: "Add to Pre-Ordered", activeLabel: "In Collection — Pre-Ordered", color: "#0088CC", icon: <ShoppingCart className="w-4 h-4" /> },
-                { key: "wishlist", label: "Add to Wishlist", activeLabel: "In Collection — Wishlist", color: "#E8A020", icon: <Star className="w-4 h-4" /> }
-              ].map(({ key, label, activeLabel, color, icon }) => (
-                <button key={key} onClick={() => onCollectionChange(key)}
-                  className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all"
-                  style={collectionStatus === key ? { background: color, color: "#fff" } : { background: "#1C1C2A", border: "1px solid rgba(107,107,128,0.5)", color: "#9ca3af" }}>
-                  {icon}{collectionStatus === key ? activeLabel : label}
-                </button>
-              ))}
-            </div>
+            <button onClick={() => onToggleCollection()}
+              className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all"
+              style={inCollection ? { background: "rgba(242, 123, 26, 0.2)", color: "#F27B1A", border: "1px solid rgba(242, 123, 26, 0.5)" } : { background: "#F27B1A", color: "#0D0D14" }}>
+              <Star className="w-4 h-4" fill={inCollection ? "currentColor" : "none"} />
+              {inCollection ? "On Your Want List" : "Add to Want List"}
+            </button>
             <a href={buildEbaySearchUrl(figure.name, figCode, region)} target="_blank" rel="noopener noreferrer"
               className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500" style={{ background: "#1C1C2A" }}>
               <ExternalLink className="w-4 h-4" />Search on eBay
