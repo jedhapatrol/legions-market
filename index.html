@@ -751,7 +751,7 @@ function FairPriceGauge({ price, low, avg, high, label, currency }) {
 }
 
 // ─── DETAIL MODAL ───
-function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose, currency, onCompare, isInCompare, watchPrice, onSetWatch, region, communityData }) {
+function DetailModal({ figure, stats, inCollection, collectionStatus, onToggleCollection, onCollectionChange, onClose, currency, onCompare, isInCompare, watchPrice, onSetWatch, region, communityData }) {
   const [detailWatchInput, setDetailWatchInput] = useState(false);
   const [detailWatchVal, setDetailWatchVal] = useState(watchPrice || "");
   if (!figure) return null;
@@ -779,11 +779,22 @@ function DetailModal({ figure, stats, inCollection, onToggleCollection, onClose,
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">License</span><span className="text-white">{figure.license}</span></div>
               <div className="bg-gray-800/50 rounded-lg p-2.5"><span className="text-gray-500 text-xs block">Retail</span><span className="text-white">{formatPrice(figure.retail, currency)}</span></div>
             </div>
-            <button onClick={() => onToggleCollection()}
-              className={`w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all`} style={inCollection ? { background: "rgba(242, 123, 26, 0.2)", color: "#F27B1A", border: "1px solid rgba(242, 123, 26, 0.5)" } : { background: "#F27B1A", color: "#0D0D14" }}>
-              <Star className="w-4 h-4" fill={inCollection ? "currentColor" : "none"} />
-              {inCollection ? "On Your Wishlist" : "Add to Wishlist"}
-            </button>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Collection</p>
+              <div className="flex gap-1.5">
+                {[
+                  { key: "owned", label: "Owned", color: "#22C55E", icon: <CheckCircle className="w-3.5 h-3.5" /> },
+                  { key: "preorder", label: "Pre-Ordered", color: "#0088CC", icon: <ShoppingCart className="w-3.5 h-3.5" /> },
+                  { key: "wishlist", label: "Wishlist", color: "#E8A020", icon: <Star className="w-3.5 h-3.5" /> }
+                ].map(({ key, label, color, icon }) => (
+                  <button key={key} onClick={() => onCollectionChange(key)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${collectionStatus === key ? "text-white" : "bg-gray-800 text-gray-500 hover:text-white border border-gray-700"}`}
+                    style={collectionStatus === key ? { background: color } : {}}>
+                    {icon}{label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <a href={buildEbaySearchUrl(figure.name, figCode, region)} target="_blank" rel="noopener noreferrer"
               className="w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500" style={{ background: "#1C1C2A" }}>
               <ExternalLink className="w-4 h-4" />Search on eBay
@@ -2082,8 +2093,10 @@ function LegionsMarket() {
         <DetailModal
           figure={showDetail}
           stats={statsForFigure(showDetail.sku) || calcStats(showDetail)}
-          inCollection={collectionMap[showDetail.sku] === "wishlist"}
+          inCollection={!!collectionMap[showDetail.sku]}
+          collectionStatus={collectionMap[showDetail.sku] || null}
           onToggleCollection={() => handleToggleCollection(showDetail.sku, "wishlist")}
+          onCollectionChange={(status) => handleToggleCollection(showDetail.sku, status)}
           onClose={() => setShowDetail(null)}
           currency={currency}
           onCompare={addToCompare}
